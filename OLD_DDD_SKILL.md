@@ -1,108 +1,108 @@
-# AI Skill Template — Method Summary
+# AI 技能模板 — 方法摘要
 
-This project implements a **Documentation-Driven Development (DDD)** workflow powered by two AI skills and a structured document system. The core idea: the document is the single source of truth — AI writes it, humans review it, then AI implements from it.
-
----
-
-## The Development Loop
-
-```
-Human proposes requirement (brief description or idea)
-        ↓
-[doc-maintain] AI drafts the implementation document (FXX / RXX / BXX)
-        ↓
-Human reviews and approves the document
-        ↓
-[tdd-development] AI reads document → writes failing test → implements code → verifies criteria → updates document
-        ↓
-[doc-maintain] syncs module docs to reflect new implementation state
-```
-
-This loop places **humans in the role of planner and reviewer**, not executor. The quality of the output depends on the quality of the document — which is why human review of the draft doc is the critical gate before any code is written.
+本專案實作了一套以**文檔驅動開發（Documentation-Driven Development, DDD）**為核心的工作流程，由兩個 AI 技能和一套結構化文檔系統共同支撐。核心理念：文檔是唯一真理來源——AI 起草，人類審查，再由 AI 依此實作。
 
 ---
 
-## The Two Document Categories
+## 開發循環
 
-### Category 1 — Implementation Documents (`documents/implements/`)
+```
+人類提出需求（簡短描述或想法）
+        ↓
+[doc-maintain] AI 草擬實作文檔（FXX / RXX / BXX）
+        ↓
+人類審查並核准文檔
+        ↓
+[tdd-development] AI 閱讀文檔 → 撰寫失敗測試 → 實作代碼 → 驗證標準 → 更新文檔
+        ↓
+[doc-maintain] 同步模組文檔以反映最新實作狀態
+```
 
-**Purpose:** Record and clarify the scope of each unit of work given to AI for implementation.
+這個循環將**人類置於規劃者與審查者的角色**，而非執行者。輸出品質取決於文檔品質——這正是為什麼人類對草稿文檔的審查，是任何代碼撰寫之前的關鍵把關點。
 
-These are created *before* coding begins and updated *after* implementation completes. They serve as the AI's authoritative prompt — replacing vague chat instructions with structured, verifiable specifications.
+---
 
-| Type | Prefix | Template | When to use |
+## 兩大文檔類別
+
+### 類別一 — 實作文檔（`documents/implements/`）
+
+**目的：** 記錄並釐清每個交付給 AI 實作的工作單元範疇。
+
+這些文檔在編碼*開始前*創建，在實作*完成後*更新。它們作為 AI 的權威提示——用結構化、可驗證的規格取代模糊的聊天指令。
+
+| 類型 | 前綴 | 模板 | 使用時機 |
 |---|---|---|---|
-| Feature spec | `FXX` | `F00-功能需求書模板.md` | New functionality |
-| Refactor spec | `RXX` | `R00-重構任務模板.md` | Structural improvement without behavior change |
-| Bug fix spec | `BXX` | `B00-Bug修正模板.md` | Reproducing and fixing a defect |
+| 功能規格 | `FXX` | `F00-功能需求書模板.md` | 新功能 |
+| 重構規格 | `RXX` | `R00-重構任務模板.md` | 不改變行為的結構性改善 |
+| 錯誤修正規格 | `BXX` | `B00-Bug修正模板.md` | 重現並修正缺陷 |
 
-Each document includes:
-- User story and feature background
-- Acceptance criteria in Given/When/Then format
-- Test scenarios table (ID, Given, When, Then, Priority)
-- Implementation notes and constraints
-- An **Implementation Record** section filled in by AI after coding (status, test evidence, files changed, gaps)
+每份文檔包含：
+- 用戶故事與功能背景
+- Given/When/Then 格式的驗收標準
+- 測試場景表（ID、Given、When、Then、優先級）
+- 實作說明與限制條件
+- 編碼後由 AI 填入的**實作記錄**章節（狀態、測試證據、變更檔案、缺口）
 
-All three types share the same TDD discipline: **Red → Green → Refactor → Sync Document**.
-
----
-
-### Category 2 — Module Documents (`documents/modules/`)
-
-**Purpose:** Reflect the *current* state of the codebase at a high level, so a new engineer can quickly understand the system without reading every file.
-
-These are **not** task documents — they are living reference docs that must stay synchronized with the actual implementation at all times.
-
-Key characteristics:
-- **High-level only.** Focus on responsibilities, boundaries, data flow, and architecture — not line-by-line code details.
-- **Always in sync with code.** When code and module doc disagree, the code is truth. The doc must be corrected.
-- **Engineer-oriented.** Written so a new team member can orient themselves quickly — understand what a module does, where it lives, what it depends on, and what its known limitations are.
-- **No future-tense fiction.** Do not describe unimplemented behavior as if it exists.
-
-Good module doc sections: Purpose · Key files · Main responsibilities · Data/state flow · External dependencies · Known limitations · Related FXX/RXX/BXX documents.
+三種類型均遵循相同的 TDD 紀律：**紅燈 → 綠燈 → 重構 → 同步文檔**。
 
 ---
 
-## The Two Skills
+### 類別二 — 模組文檔（`documents/modules/`）
+
+**目的：** 在高層次反映當前程式碼庫的狀態，讓新工程師無需閱讀每個檔案即可快速理解系統。
+
+這些**不是**任務文檔——它們是動態的參考文檔，必須始終與實際實作保持同步。
+
+關鍵特性：
+- **僅呈現高層次內容。** 專注於職責、邊界、數據流和架構——而非逐行代碼細節。
+- **始終與代碼同步。** 當代碼與模組文檔不一致時，以代碼為準。文檔必須被修正。
+- **面向工程師。** 讓新團隊成員能夠快速定位——理解一個模組的作用、位置、依賴關係及已知限制。
+- **不描述未實作的行為。** 不得將尚未實作的行為描述為已存在。
+
+良好的模組文檔章節：目的 · 關鍵檔案 · 主要職責 · 數據/狀態流 · 外部依賴 · 已知限制 · 相關 FXX/RXX/BXX 文檔。
+
+---
+
+## 兩個技能
 
 ### `doc-maintain`
 
-**Used for:** Creating and maintaining both document categories.
+**用途：** 創建和維護兩類文檔。
 
-**In the development loop — before coding:**
-1. Reads the human's requirement description.
-2. Finds the next available FXX/RXX/BXX number and reads the matching template.
-3. Checks `documents/modules/` and the codebase for relevant context.
-4. Drafts a complete implementation document for human review.
+**在開發循環中——編碼前：**
+1. 閱讀人類的需求描述。
+2. 找到下一個可用的 FXX/RXX/BXX 編號並閱讀對應模板。
+3. 檢查 `documents/modules/` 和程式碼庫以獲取相關上下文。
+4. 草擬完整的實作文檔供人類審查。
 
-**In the development loop — after coding:**
-1. Updates the FXX/RXX/BXX Implementation Record with final results.
-2. Audits affected module docs against the new implementation.
-3. Updates or flags module docs that are now stale.
+**在開發循環中——編碼後：**
+1. 以最終結果更新 FXX/RXX/BXX 實作記錄。
+2. 對照新實作審計受影響的模組文檔。
+3. 更新或標記已過時的模組文檔。
 
 ---
 
 ### `tdd-development`
 
-**Used for:** All production code changes, driven by an approved implementation document.
+**用途：** 所有生產代碼變更，由已核准的實作文檔驅動。
 
-**Sequence (non-negotiable):**
-1. Read and understand the FXX/RXX/BXX document — this is the only authoritative source of requirements.
-2. Extract acceptance criteria and test cases from the document.
-3. Write the smallest failing test (red phase) — must confirm failure before proceeding.
-4. Implement the minimum production code to pass (green phase).
-5. Verify every acceptance criterion is covered by tests.
-6. Write the Implementation Record back into the document.
+**流程（不可協商）：**
+1. 閱讀並理解 FXX/RXX/BXX 文檔——這是需求的唯一權威來源。
+2. 從文檔中提取驗收標準和測試案例。
+3. 撰寫最小的失敗測試（紅燈階段）——必須在繼續之前確認失敗。
+4. 實作通過測試所需的最小生產代碼（綠燈階段）。
+5. 驗證每個驗收標準都有測試覆蓋。
+6. 將實作記錄寫回文檔。
 
-Never starts from a vague chat instruction alone. If no implementation document exists, stops and requests one.
+不單獨從模糊的聊天指令開始。如果不存在實作文檔，則停止並要求提供一份。
 
 ---
 
-## Key Design Principles
+## 關鍵設計原則
 
-- **AI drafts, humans approve.** The document creation step is a collaboration checkpoint, not a formality.
-- **No code without an approved document.** `tdd-development` treats the document as its only prompt.
-- **No success without test evidence.** A feature is not complete unless tests ran and passed.
-- **Module docs mirror reality.** Stale module docs are treated as bugs by `doc-maintain`.
-- **Minimum viable change.** Both skills enforce smallest-test and smallest-implementation discipline.
-- **Assumptions are surfaced, not buried.** Ambiguity in a document is flagged before implementation, and any assumptions made are recorded in the Implementation Record.
+- **AI 起草，人類核准。** 文檔創建步驟是協作的檢查點，而非形式。
+- **沒有已核准的文檔，就沒有代碼。** `tdd-development` 將文檔視為其唯一提示。
+- **沒有測試證據，就沒有成功。** 功能未完成，除非測試已運行並通過。
+- **模組文檔反映現實。** 過時的模組文檔被 `doc-maintain` 視為缺陷處理。
+- **最小可行變更。** 兩個技能都執行最小測試和最小實作的紀律。
+- **假設被浮現，而非埋藏。** 文檔中的模糊性在實作前被標記，所有在實作過程中做出的假設都記錄在實作記錄中。
