@@ -1,13 +1,14 @@
 # DDD × Pocock 強化工作流程
 
-將此資料夾加入 AI 的上下文，即可使用完整的 DDD 強化工作流程。
+不要將整個 `ddd-workflow/` 資料夾加入 AI 上下文。請只載入被觸發的 `skills/*/SKILL.md`，並讓技能在需要時再讀取同資料夾內的模板或參考文件，避免一次消耗整包 token。
 
 ## 快速開始
 
-1. 將整個 `ddd-workflow/` 資料夾加入 AI 對話（或複製到你的專案）
-2. 執行 `/ddd-create-folder` 建立專案文檔結構與模板
-3. 填寫 `CONTEXT.md`，定義你的專案領域術語
-4. 執行 `/ddd-start` 開始任何新工作
+1. 將 `ddd-workflow/skills/` 安裝或註冊為可觸發技能
+2. 需要初始化專案時，只觸發 `/ddd-create-folder`
+3. `/ddd-create-folder` 會從 `skills/ddd-create-folder/templates/` 複製 F00 / R00 / B00 模板
+4. 填寫專案根目錄的 `CONTEXT.md`，定義你的專案領域術語
+5. 執行 `/ddd-start` 開始任何新工作
 
 ## 開發循環
 
@@ -56,15 +57,12 @@ ddd-workflow/
 ├── README.md                      ← 本文件
 ├── CONTEXT.md                     ← 填寫你的專案領域術語（必填）
 ├── WORKFLOW.md                    ← 工作流程完整說明
-├── documents/
-│   └── implements/
-│       ├── F00-feature-template.md   ← FXX 模板
-│       ├── R00-refactor-template.md  ← RXX 模板
-│       └── B00-bugfix-template.md    ← BXX 模板
 └── skills/
     ├── ddd-start/   ← 入口路由
     ├── ddd-doc/     ← 文檔管理
     ├── ddd-tdd/     ← TDD 實作
+    ├── ddd-create-folder/
+    │   └── templates/ ← F00 / R00 / B00 的唯一模板來源
     ├── grill-me/
     ├── grill-with-docs/
     ├── zoom-out/
@@ -88,3 +86,5 @@ ddd-workflow/
 │   └── modules/      ← 模組高層次文檔
 └── CONTEXT.md        ← 從 ddd-workflow/CONTEXT.md 複製並填寫
 ```
+
+模板唯一來源位於 `ddd-workflow/skills/ddd-create-folder/templates/`。不要在 `ddd-workflow/documents/implements/` 再維護第二份模板。
