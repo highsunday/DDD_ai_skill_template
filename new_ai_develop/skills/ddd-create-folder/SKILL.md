@@ -1,0 +1,92 @@
+---
+name: ddd-create-folder
+description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/implements/（含 F00 / R00 / B00 模板）與 documents/modules/。當在新專案中初始化 DDD 工作流程時使用。
+---
+
+# DDD Create Folder
+
+在當前專案中建立 DDD 工作流程所需的完整資料夾結構與初始模板檔案。
+
+## 步驟一 — 確認建立位置
+
+在當前工作目錄（專案根目錄）建立以下結構：
+
+```
+documents/
+├── implements/     ← FXX / RXX / BXX 工作文檔存放處
+│   ├── F00-功能需求書模板.md
+│   ├── R00-重構任務模板.md
+│   └── B00-Bug修正模板.md
+└── modules/        ← 模組高層次文檔存放處（初始為空）
+```
+
+若 `documents/` 資料夾已存在，告知使用者並詢問是否繼續（避免覆蓋現有內容）。
+
+## 步驟二 — 建立資料夾
+
+執行以下指令：
+
+```bash
+mkdir -p documents/implements
+mkdir -p documents/modules
+```
+
+## 步驟三 — 寫入模板檔案
+
+讀取本技能資料夾（`skills/ddd-create-folder/templates/`）中的三份模板，將其內容原封不動寫入專案的 `documents/implements/`：
+
+- `templates/F00-功能需求書模板.md` → `documents/implements/F00-功能需求書模板.md`
+- `templates/R00-重構任務模板.md`  → `documents/implements/R00-重構任務模板.md`
+- `templates/B00-Bug修正模板.md`   → `documents/implements/B00-Bug修正模板.md`
+
+若目標檔案已存在，**不覆蓋**，並告知使用者跳過了哪些檔案。
+
+## 步驟四 — 建立 CONTEXT.md（可選）
+
+詢問使用者：「是否要在專案根目錄建立 `CONTEXT.md` 領域語言模板？」
+
+若同意，在專案根目錄建立以下內容的 `CONTEXT.md`：
+
+```markdown
+# CONTEXT.md — 專案領域語言
+
+> 這是專案的領域詞彙表。所有 AI 技能在撰寫文檔、測試或代碼之前都會讀取此檔案。
+> 請填入你的專案詞彙，刪除不適用的範例。
+
+## Language（術語定義）
+
+**[術語 1]**：
+[定義]
+_避免使用：_ [近義詞]
+
+## Relationships（關係說明）
+
+## Architecture Boundaries（架構邊界）
+
+## Flagged Ambiguities（已釐清的模糊點）
+```
+
+若根目錄已有 `CONTEXT.md`，不覆蓋，告知使用者已跳過。
+
+## 步驟五 — 報告結果
+
+完成後輸出建立摘要：
+
+```
+DDD 資料夾初始化完成：
+
+已建立：
+  ✓ documents/implements/
+  ✓ documents/modules/
+  ✓ documents/implements/F00-功能需求書模板.md
+  ✓ documents/implements/R00-重構任務模板.md
+  ✓ documents/implements/B00-Bug修正模板.md
+  [✓ CONTEXT.md（若使用者選擇建立）]
+
+已跳過（已存在）：
+  [列出跳過的檔案，若無則省略]
+
+下一步：
+  1. 填寫 CONTEXT.md 定義你的專案領域術語
+  2. 執行 /ddd-start 開始第一個工作
+```
