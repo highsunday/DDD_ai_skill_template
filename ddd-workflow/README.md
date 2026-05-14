@@ -4,7 +4,7 @@
 
 ## 快速開始
 
-1. 將整個 `new_ai_develop/` 資料夾加入 AI 對話（或複製到你的專案）
+1. 將整個 `ddd-workflow/` 資料夾加入 AI 對話（或複製到你的專案）
 2. 執行 `/ddd-create-folder` 建立專案文檔結構與模板
 3. 填寫 `CONTEXT.md`，定義你的專案領域術語
 4. 執行 `/ddd-start` 開始任何新工作
@@ -52,15 +52,15 @@
 ## 資料夾結構
 
 ```
-new_ai_develop/
+ddd-workflow/
 ├── README.md                      ← 本文件
 ├── CONTEXT.md                     ← 填寫你的專案領域術語（必填）
-├── NEW_DDD_SKILLs.md              ← 工作流程完整說明
+├── WORKFLOW.md                    ← 工作流程完整說明
 ├── documents/
 │   └── implements/
-│       ├── F00-功能需求書模板.md   ← FXX 模板
-│       ├── R00-重構任務模板.md     ← RXX 模板
-│       └── B00-Bug修正模板.md      ← BXX 模板
+│       ├── F00-feature-template.md   ← FXX 模板
+│       ├── R00-refactor-template.md  ← RXX 模板
+│       └── B00-bugfix-template.md    ← BXX 模板
 └── skills/
     ├── ddd-start/   ← 入口路由
     ├── ddd-doc/     ← 文檔管理
@@ -86,5 +86,5 @@ new_ai_develop/
 ├── documents/
 │   ├── implements/   ← FXX / RXX / BXX 工作文檔
 │   └── modules/      ← 模組高層次文檔
-└── CONTEXT.md        ← 從 new_ai_develop/CONTEXT.md 複製並填寫
+└── CONTEXT.md        ← 從 ddd-workflow/CONTEXT.md 複製並填寫
 ```
