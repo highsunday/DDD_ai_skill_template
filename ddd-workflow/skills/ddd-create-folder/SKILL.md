@@ -17,6 +17,8 @@ documents/
 │   ├── F00-feature-template.md
 │   ├── R00-refactor-template.md
 │   └── B00-bugfix-template.md
+├── planning/       ← PXX 多階段規劃書存放處
+│   └── P00-planning-template.md
 └── modules/        ← 模組高層次文檔存放處（初始為空）
 ```
 
@@ -28,16 +30,18 @@ documents/
 
 ```bash
 mkdir -p documents/implements
+mkdir -p documents/planning
 mkdir -p documents/modules
 ```
 
 ## 步驟三 — 寫入模板檔案
 
-讀取本技能資料夾（`skills/ddd-create-folder/templates/`）中的三份模板，將其內容原封不動寫入專案的 `documents/implements/`：
+讀取本技能資料夾（`skills/ddd-create-folder/templates/`）中的四份模板，將其內容原封不動寫入專案：
 
 - `templates/F00-feature-template.md` → `documents/implements/F00-feature-template.md`
 - `templates/R00-refactor-template.md`  → `documents/implements/R00-refactor-template.md`
 - `templates/B00-bugfix-template.md`   → `documents/implements/B00-bugfix-template.md`
+- `templates/P00-planning-template.md` → `documents/planning/P00-planning-template.md`
 
 若目標檔案已存在，**不覆蓋**，並告知使用者跳過了哪些檔案。
 
@@ -77,10 +81,12 @@ DDD 資料夾初始化完成：
 
 已建立：
   ✓ documents/implements/
+  ✓ documents/planning/
   ✓ documents/modules/
   ✓ documents/implements/F00-feature-template.md
   ✓ documents/implements/R00-refactor-template.md
   ✓ documents/implements/B00-bugfix-template.md
+  ✓ documents/planning/P00-planning-template.md
   [✓ CONTEXT.md（若使用者選擇建立）]
 
 已跳過（已存在）：
