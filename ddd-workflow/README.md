@@ -38,6 +38,7 @@ orchestrator 每個 item 開新 Codex / Claude Code session
 worker 執行 ddd-start → ddd-doc → ddd-tdd → git commit → 更新 queue
       ↓
 Agent Communication Ledger 記錄派工 / 問題 / 回答 / 測試 / 接棒
+長 stdout / 舊歷史歸檔到 documents/queue/logs/
       ↓
 完成 batch limit 或 blocked 後停止
 ```
@@ -51,7 +52,7 @@ Agent Communication Ledger 記錄派工 / 問題 / 回答 / 測試 / 接棒
 | `/ddd-doc` | 建立與維護 FXX / RXX / BXX 文檔及模組文檔 |
 | `/ddd-tdd` | 文檔驅動的 TDD 實作，整合結構化除錯 |
 | `/ddd-plan` | 大型改動的 PXX 多階段規劃；適用於後續範疇需等前階段完成才知道 |
-| `/ddd-queue` | 多個已排序工作連續執行；先集中 grill-me 釐清所有 item，再逐項新 session 執行並各自 commit，QXX 內保留跨 agent 溝通紀錄 |
+| `/ddd-queue` | 多個已排序工作連續執行；先集中 grill-me 釐清所有 item，再逐項新 session 執行並各自 commit，QXX 內保留精簡 ledger 與 archive 索引 |
 
 ## Pocock 技能（按需使用）
 
@@ -107,6 +108,7 @@ ddd-workflow/
 │   ├── implements/   ← FXX / RXX / BXX 工作文檔
 │   ├── planning/     ← PXX 多階段規劃書
 │   ├── queue/        ← QXX 長時間工作佇列
+│   │   └── logs/     ← queue 長 log / archive
 │   └── modules/      ← 模組高層次文檔
 └── CONTEXT.md        ← 從 ddd-workflow/CONTEXT.md 複製並填寫
 ```

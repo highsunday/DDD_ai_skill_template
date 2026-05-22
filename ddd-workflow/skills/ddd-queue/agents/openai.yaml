@@ -1,4 +1,4 @@
 interface:
   display_name: "DDD Queue"
-  short_description: "Clarify ordered DDD work items, then run them with an agent ledger."
-  default_prompt: "Use ddd-queue to create a DDD queue, run centralized grill-me clarification for all items, then execute with an append-only agent communication ledger."
+  short_description: "Clarify ordered DDD work items, then run them with compact agent logs."
+  default_prompt: "Use ddd-queue to create a DDD queue, run centralized grill-me clarification for all items, then execute each item in a fresh session with compact ledger summaries and archived long logs."

@@ -111,13 +111,14 @@ description: DDD 工作流程的統一入口。偵測需求類型並路由到正
 範例：
 > 「需求涉及多個模組，規模較大。已知影響範圍：[模組清單]。CONTEXT.md 已載入。請繼續 `/ddd-plan` 切分階段並起草 PXX 規劃書。」
 
-**交棒給 `ddd-queue`（類型 F）時，明確說明以下四點：**
+**交棒給 `ddd-queue`（類型 F）時，明確說明以下六點：**
 
 1. **queue 目標：** 這批工作要讓 AI 自主完成到什麼程度
 2. **item 清單：** 每個 item 的名稱、類型（FXX/RXX/BXX）、驗收方式、依賴與解鎖條件
 3. **執行設定：** batch limit、偏好的 agent、是否需要 blocked 時寄信
 4. **集中釐清狀態：** 已完成 / 需要先 grill-me
-5. **CONTEXT.md 狀態：** 已載入 / 不存在
+5. **上下文策略：** QXX 主文件只保留索引、摘要、active entries 與 handoff；長 log 歸檔到 `documents/queue/logs/`
+6. **CONTEXT.md 狀態：** 已載入 / 不存在
 
 範例：
-> 「這是一批已排序且可自動推進的工作，適合 `/ddd-queue`。共 3 個 item，Q02 依賴 Q01、Q03 依賴 Q02，預設 batch limit 3，blocked 時寄信通知。CONTEXT.md 已載入。請先建立 QXX queue 文件並集中執行 `/grill-me` 釐清所有 item；QXX ready 後，若使用者要求立即執行，作為 orchestrator 每個 item 啟動新的 Codex / Claude Code session。」
+> 「這是一批已排序且可自動推進的工作，適合 `/ddd-queue`。共 3 個 item，Q02 依賴 Q01、Q03 依賴 Q02，預設 batch limit 3，blocked 時寄信通知。CONTEXT.md 已載入。請先建立 QXX queue 文件並集中執行 `/grill-me` 釐清所有 item；QXX ready 後，若使用者要求立即執行，作為 orchestrator 每個 item 啟動新的 Codex / Claude Code session。QXX 使用 compact context：主文件保留摘要、索引、active entries 與 handoff，長 log 歸檔。」

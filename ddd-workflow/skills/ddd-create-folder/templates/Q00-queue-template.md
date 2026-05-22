@@ -10,6 +10,9 @@ mode: sequential
 intake_grill_status: pending
 ready_for_execution: false
 communication_format_version: 1
+context_policy: compact
+ledger_retention: latest_active_entries
+ledger_archive_dir: documents/queue/logs
 notify_email: <可選，阻塞時通知的 email>
 ---
 
@@ -76,17 +79,45 @@ reviewed_at: —
 
 ---
 
-## 4. Agent Communication Ledger (Append-only)
+## 4. Context Budget / Token Policy
 
-> 本區是 Codex、Claude Code、orchestrator 與使用者的共享通訊帳本。只能追加，不要刪改既有 entry。若要修正，新增 `correction` entry。
+> QXX 主文件只保留狀態、索引、摘要與未解決問題。完整 stdout、長測試輸出、舊 worker 回覆與歷史細節請歸檔到 `documents/queue/logs/`，再從 Log Index 連回來。
+
+### Main File Keeps
+
+- Queue Intake Review 摘要
+- 總覽與各 item 目前狀態
+- 每個 item 最多 8 行的 Agent Handoff Summary
+- Log Index
+- 最近、未解決、或下一個 worker 必讀的 Active Entries
+
+### Archive When
+
+- 單一 ledger entry 超過約 1200 字
+- `worker_log` 超過約 8 行
+- 測試輸出或 stdout 需要保留全文
+- QXX 超過約 500 行或 ledger 超過 20 筆
+- 已完成 item 的細節不再影響下一個 item
+
+### Archive Format
+
+- Archive path: `documents/queue/logs/<QXX>-<entry-id>.md`
+- QXX 只保留摘要與 `Archive Ref`
+- 壓縮後追加 `compaction` 或 `archive` ledger entry
+
+---
+
+## 5. Agent Communication Ledger (Append-only)
+
+> 本區是 Codex、Claude Code、orchestrator 與使用者的共享通訊帳本。只能追加，不要刪改既有 entry。若要修正，新增 `correction` entry。主文件只保留索引與 active entries；長內容放 archive。
 
 ### Log Index
 
-| Entry | Time | Item | From -> To | Type | Summary |
-|-------|------|------|------------|------|---------|
-| L001 | <YYYY-MM-DD HH:MM> | QXX-01 | orchestrator -> codex | dispatch | <指派 QXX-01> |
+| Entry | Time | Item | From -> To | Type | Summary | Archive Ref |
+|-------|------|------|------------|------|---------|-------------|
+| L001 | <YYYY-MM-DD HH:MM> | QXX-01 | orchestrator -> codex | dispatch | <指派 QXX-01> | — |
 
-### Entries
+### Active Entries
 
 #### L001 — <YYYY-MM-DD HH:MM> — QXX-01 — orchestrator -> codex — dispatch
 
@@ -109,6 +140,9 @@ reviewed_at: —
 **Follow-up**
 - —
 
+**Archive**
+- —
+
 ---
 
 ## QXX-01 <工作名稱>
@@ -128,6 +162,7 @@ worker_session: —
 worker_log: —
 handoff_summary: —
 communication_entries: [L001]
+archive_refs: []
 
 ### 需求
 
@@ -159,6 +194,7 @@ communication_entries: [L001]
 questions: []
 need_user_decision: []
 ledger_entries: [L001]
+archive_refs: []
 
 ### Agent Handoff Summary
 
@@ -188,6 +224,7 @@ worker_session: —
 worker_log: —
 handoff_summary: —
 communication_entries: []
+archive_refs: []
 
 ### 需求
 
@@ -218,6 +255,7 @@ communication_entries: []
 questions: []
 need_user_decision: []
 ledger_entries: []
+archive_refs: []
 
 ### Agent Handoff Summary
 
@@ -247,6 +285,7 @@ worker_session: —
 worker_log: —
 handoff_summary: —
 communication_entries: []
+archive_refs: []
 
 ### 需求
 
@@ -277,6 +316,7 @@ communication_entries: []
 questions: []
 need_user_decision: []
 ledger_entries: []
+archive_refs: []
 
 ### Agent Handoff Summary
 
@@ -287,15 +327,16 @@ ledger_entries: []
 - Risks: —
 - Next agent notes: —
 
-## 5. Queue 執行規則
+## 6. Queue 執行規則
 
 1. 每個 item 必須由新的 Codex 或 Claude Code session 處理。
 2. 執行 worker 前必須完成 Queue Intake Review：`intake_grill_status: completed`、`ready_for_execution: true`，且要執行的 item 都是 `clarification_status: clarified`。
 3. 每個 item 必須以 `ddd-start → ddd-doc → ddd-tdd` 完整流程處理。
 4. 每個 item 完成後必須 git commit。
 5. 有相依關係時，必須確認 `depends_on` 全部 completed 且 `unlock_condition` 可驗證，才能開始下一個 item。
-6. 所有跨 agent 溝通必須追加到 `Agent Communication Ledger`，並將 entry id 寫回對應 item 的 `communication_entries` / `ledger_entries`。
+6. 所有跨 agent 溝通必須追加到 `Agent Communication Ledger`，並將 entry id 寫回對應 item 的 `communication_entries` / `ledger_entries`；長內容只保留摘要並寫入 `archive_refs`。
 7. 子 session 需要使用者回答時，必須寫入 `questions` / `need_user_decision`，追加 `question` 或 `blocked` ledger entry，並將 item 設為 blocked。
 8. 使用者回答後，orchestrator 必須追加 `answer` ledger entry，再啟動新的 worker session。
 9. 遇到 blocked 必須停止整個 queue，不得繼續後續 item。
 10. 一次最多處理 `batch_limit` 個 pending item，且不得超過 5 個。
+11. 下一個 worker 預設只讀 QXX frontmatter、Queue Intake Review、總覽、指定 item、依賴 item handoff、Log Index 與相關 active entries；除非 blocked 或上下文矛盾，不讀完整 archive。

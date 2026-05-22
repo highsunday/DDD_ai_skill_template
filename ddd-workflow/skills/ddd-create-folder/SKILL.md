@@ -1,6 +1,6 @@
 ---
 name: ddd-create-folder
-description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/implements/（含 F00 / R00 / B00 模板）、documents/planning/（含 P00 模板）、documents/queue/（含 Q00 長時間工作佇列模板）、documents/modules/ 與 documents/guides/（含 G00 模板）。當在新專案中初始化 DDD 工作流程時使用。
+description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/implements/（含 F00 / R00 / B00 模板）、documents/planning/（含 P00 模板）、documents/queue/（含 Q00 長時間工作佇列模板與 logs/ 歸檔資料夾）、documents/modules/ 與 documents/guides/（含 G00 模板）。當在新專案中初始化 DDD 工作流程時使用。
 ---
 
 # DDD Create Folder
@@ -20,7 +20,8 @@ documents/
 ├── planning/       ← PXX 多階段規劃書存放處
 │   └── P00-planning-template.md
 ├── queue/          ← QXX 長時間工作佇列存放處
-│   └── Q00-queue-template.md
+│   ├── Q00-queue-template.md
+│   └── logs/       ← queue 長 log / archive 存放處
 ├── modules/        ← 模組高層次文檔存放處（初始為空）
 └── guides/         ← GXX 操作指南存放處（執行測試、打包等）
     └── G00-guide-template.md
@@ -36,6 +37,7 @@ documents/
 mkdir -p documents/implements
 mkdir -p documents/planning
 mkdir -p documents/queue
+mkdir -p documents/queue/logs
 mkdir -p documents/modules
 mkdir -p documents/guides
 ```
@@ -91,6 +93,7 @@ DDD 資料夾初始化完成：
   ✓ documents/implements/
   ✓ documents/planning/
   ✓ documents/queue/
+  ✓ documents/queue/logs/
   ✓ documents/modules/
   ✓ documents/guides/
   ✓ documents/implements/F00-feature-template.md
