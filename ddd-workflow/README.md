@@ -6,9 +6,9 @@
 
 1. 將 `ddd-workflow/skills/` 安裝或註冊為可觸發技能
 2. 需要初始化專案時，只觸發 `/ddd-create-folder`
-3. `/ddd-create-folder` 會從 `skills/ddd-create-folder/templates/` 複製 F00 / R00 / B00 模板
+3. `/ddd-create-folder` 會從 `skills/ddd-create-folder/templates/` 複製 F00 / R00 / B00 / P00 / Q00 / G00 模板
 4. 填寫專案根目錄的 `CONTEXT.md`，定義你的專案領域術語
-5. 執行 `/ddd-start` 開始任何新工作
+5. 執行 `/ddd-start` 開始任何新工作；若要讓 AI 連續處理多個已排序工作，使用 `/ddd-queue`
 
 ## 開發循環
 
@@ -24,14 +24,30 @@
 /ddd-tdd     紅燈 → 綠燈 → 驗收 → 更新文檔
 ```
 
+長時間工作佇列不一定走 PXX：
+
+```
+人類列出 2-5 個已排序工作
+      ↓
+/ddd-queue   建立 QXX queue 文件
+      ↓
+orchestrator 每個 item 開新 Codex / Claude Code session
+      ↓
+worker 完成單一 item → 測試 → git commit → 更新 queue
+      ↓
+完成 batch limit 或 blocked 後停止
+```
+
 ## DDD 技能（主流程）
 
 | 技能 | 用途 |
 |---|---|
-| `/ddd-create-folder` | **新專案初始化**：建立 documents/ 資料夾與 F00 / R00 / B00 模板 |
+| `/ddd-create-folder` | **新專案初始化**：建立 documents/ 資料夾與 F00 / R00 / B00 / P00 / Q00 / G00 模板 |
 | `/ddd-start` | 任何新工作的入口，偵測類型並路由 |
 | `/ddd-doc` | 建立與維護 FXX / RXX / BXX 文檔及模組文檔 |
 | `/ddd-tdd` | 文檔驅動的 TDD 實作，整合結構化除錯 |
+| `/ddd-plan` | 大型改動的 PXX 多階段規劃；適用於後續範疇需等前階段完成才知道 |
+| `/ddd-queue` | 多個已排序工作連續執行；可獨立或明確相依，每個 item 新 session 並各自 commit |
 
 ## Pocock 技能（按需使用）
 
@@ -61,8 +77,10 @@ ddd-workflow/
     ├── ddd-start/   ← 入口路由
     ├── ddd-doc/     ← 文檔管理
     ├── ddd-tdd/     ← TDD 實作
+    ├── ddd-plan/    ← 大型改動規劃
+    ├── ddd-queue/   ← 長時間工作佇列
     ├── ddd-create-folder/
-    │   └── templates/ ← F00 / R00 / B00 的唯一模板來源
+    │   └── templates/ ← F00 / R00 / B00 / P00 / Q00 / G00 的唯一模板來源
     ├── grill-me/
     ├── grill-with-docs/
     ├── zoom-out/
@@ -83,6 +101,8 @@ ddd-workflow/
 你的專案/
 ├── documents/
 │   ├── implements/   ← FXX / RXX / BXX 工作文檔
+│   ├── planning/     ← PXX 多階段規劃書
+│   ├── queue/        ← QXX 長時間工作佇列
 │   └── modules/      ← 模組高層次文檔
 └── CONTEXT.md        ← 從 ddd-workflow/CONTEXT.md 複製並填寫
 ```
