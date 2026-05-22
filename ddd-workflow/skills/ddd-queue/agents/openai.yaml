@@ -1,4 +1,4 @@
 interface:
   display_name: "DDD Queue"
-  short_description: "Run ordered DDD work items and keep an agent communication ledger."
-  default_prompt: "Use ddd-queue to create or execute a DDD queue document with an append-only agent communication ledger."
+  short_description: "Clarify ordered DDD work items, then run them with an agent ledger."
+  default_prompt: "Use ddd-queue to create a DDD queue, run centralized grill-me clarification for all items, then execute with an append-only agent communication ledger."

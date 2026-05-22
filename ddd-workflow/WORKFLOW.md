@@ -25,6 +25,8 @@
   │                                                                      ↓
   │                                             [ddd-queue]  建立 QXX 佇列
   │                                                                      │
+  │                            集中 [grill-me] 釐清所有 item
+  │                                                                      │
   │                     每個 item 開新 session 跑 ddd-start/doc/tdd
   │                                                                      │
   └─ 已有規格 ──→ 直接進入文檔步驟 ←──────────────────────────────────────┘
@@ -85,12 +87,13 @@
 
 每份 QXX 文檔包含：
 - batch limit 與 blocked 通知設定
+- `Queue Intake Review`：在執行前集中使用 `grill-me` 釐清所有 item 的需求、設計問題、依賴、驗收方式與停止條件
 - 每個 item 的類型（FXX/RXX/BXX）、指定 agent、依賴、解鎖條件、狀態、關聯文檔與 commit hash
 - 每個 item 的需求、使用者可操作驗收方式與停止條件
 - `Agent Communication Ledger`：append-only 記錄 orchestrator、Codex、Claude Code 與使用者之間的派工、問題、回答、決策、測試證據與接棒摘要
 - blocked 時的原因與需要使用者決策的選項
 
-執行時由 orchestrator 讀取 QXX，對每個 pending item 啟動新的 worker session。worker 只處理單一 item，且必須完整走 `ddd-start → ddd-doc → ddd-tdd`。完成後測試、更新文檔、git commit，然後停止。
+執行時由 orchestrator 讀取 QXX，先確認 `Queue Intake Review` 已完成、`ready_for_execution: true`，且每個要執行的 item 都是 `clarification_status: clarified`。接著對每個 pending item 啟動新的 worker session。worker 只處理單一 item，且必須完整走 `ddd-start → ddd-doc → ddd-tdd`。完成後測試、更新文檔、git commit，然後停止。
 
 非互動子 session 不做即時對話。需要使用者判斷時，worker 將 item 設為 blocked，寫入 `questions` / `need_user_decision`，並追加 ledger entry；orchestrator 通知使用者並停止 queue。使用者回答後，也由 orchestrator 追加 `answer` entry，讓後續 agent 能從 QXX 讀到完整溝通紀錄。
 
@@ -186,14 +189,16 @@
 **行為：**
 1. 讀取 `CONTEXT.md`，使用專案領域語言整理 item
 2. 建立 `documents/queue/QXX-*.md`，或讀取既有 QXX
-3. 驗證每個 item 都有明確需求、驗收方式與停止條件
-4. 若 item 之間有依賴，寫入 `depends_on` 與 `unlock_condition`
-5. 若後續 item 的範疇必須等前一階段完成後才知道，改用 `ddd-plan`
-6. 執行時由 orchestrator 啟動新的 Codex / Claude Code worker session
-7. worker 只處理指定 item，依序執行 `ddd-start`、`ddd-doc`、`ddd-tdd`、更新 queue、git commit
-8. 所有跨 agent 訊息追加到 `Agent Communication Ledger`
-9. 完成 batch limit 或遇到 blocked 後停止
-10. blocked 時寄信通知使用者，並保留後續 item 為 pending
+3. 先用集中式 `grill-me` 釐清所有 item 的需求、設計問題、依賴、驗收方式與停止條件
+4. 更新 `Queue Intake Review`，將可執行 item 標為 `clarification_status: clarified`
+5. 驗證每個 item 都有明確需求、驗收方式與停止條件
+6. 若 item 之間有依賴，寫入 `depends_on` 與 `unlock_condition`
+7. 若後續 item 的範疇必須等前一階段完成後才知道，改用 `ddd-plan`
+8. 執行時由 orchestrator 啟動新的 Codex / Claude Code worker session
+9. worker 只處理指定 item，依序執行 `ddd-start`、`ddd-doc`、`ddd-tdd`、更新 queue、git commit
+10. 所有跨 agent 訊息追加到 `Agent Communication Ledger`
+11. 完成 batch limit 或遇到 blocked 後停止
+12. blocked 時寄信通知使用者，並保留後續 item 為 pending
 
 ---
 

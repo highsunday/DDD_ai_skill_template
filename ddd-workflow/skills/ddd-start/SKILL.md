@@ -62,8 +62,10 @@ description: DDD 工作流程的統一入口。偵測需求類型並路由到正
 
 **路由：**
 1. 交棒 `ddd-queue` 建立或讀取 `documents/queue/QXX-*.md`。
-2. 若使用者要求立即執行，明確說明由 orchestrator 啟動新的 Codex / Claude Code session，每個 item 一個 session。
-3. 若任一 item 缺少可驗收行為，要求補足或將該 item 標記為 blocked，不要直接進入實作。
+2. 在建立 QXX 階段先集中執行 `grill-me`，一次性釐清所有 item 的需求、設計問題、依賴、驗收方式與停止條件。
+3. 只有 QXX 的 `intake_grill_status: completed`、`ready_for_execution: true`，且待執行 item 都是 `clarification_status: clarified` 時，才允許進入執行。
+4. 若使用者要求立即執行，明確說明由 orchestrator 啟動新的 Codex / Claude Code session，每個 item 一個 session。
+5. 若任一 item 缺少可驗收行為，要求補足或將該 item 標記為 blocked，不要直接進入實作。
 
 ### 類型 G — 多階段大型改動
 
@@ -114,7 +116,8 @@ description: DDD 工作流程的統一入口。偵測需求類型並路由到正
 1. **queue 目標：** 這批工作要讓 AI 自主完成到什麼程度
 2. **item 清單：** 每個 item 的名稱、類型（FXX/RXX/BXX）、驗收方式、依賴與解鎖條件
 3. **執行設定：** batch limit、偏好的 agent、是否需要 blocked 時寄信
-4. **CONTEXT.md 狀態：** 已載入 / 不存在
+4. **集中釐清狀態：** 已完成 / 需要先 grill-me
+5. **CONTEXT.md 狀態：** 已載入 / 不存在
 
 範例：
-> 「這是一批已排序且可自動推進的工作，適合 `/ddd-queue`。共 3 個 item，Q02 依賴 Q01、Q03 依賴 Q02，預設 batch limit 3，blocked 時寄信通知。CONTEXT.md 已載入。請建立 QXX queue 文件；若使用者要求立即執行，作為 orchestrator 每個 item 啟動新的 Codex / Claude Code session。」
+> 「這是一批已排序且可自動推進的工作，適合 `/ddd-queue`。共 3 個 item，Q02 依賴 Q01、Q03 依賴 Q02，預設 batch limit 3，blocked 時寄信通知。CONTEXT.md 已載入。請先建立 QXX queue 文件並集中執行 `/grill-me` 釐清所有 item；QXX ready 後，若使用者要求立即執行，作為 orchestrator 每個 item 啟動新的 Codex / Claude Code session。」
