@@ -1,6 +1,6 @@
 ---
 name: ddd-queue
-description: "DDD 長時間工作佇列技能。建立或執行 documents/queue/ 下的 QXX queue 文件，適用於 2 到 5 個已排序、可自動推進的功能、Bug 修正或重構工作；item 可以彼此獨立，也可以有明確 depends_on 與 unlock_condition。每個 item 必須由新的 Codex 或 Claude Code session 單獨處理，完成後 git commit，遇到 blocker 則寄信通知使用者並停止。不要用於單一工作、需求仍需人類逐階段決策、或後續階段範疇必須等前一階段完成後才能定義的工作，這些分別使用 ddd-doc/ddd-tdd 或 ddd-plan。"
+description: "DDD 長時間工作佇列技能。建立或執行 documents/queue/ 下的 QXX queue 文件，適用於 2 到 5 個已排序、可自動推進的功能、Bug 修正或重構工作；item 可以彼此獨立，也可以有明確 depends_on 與 unlock_condition。每個 item 必須由新的 Codex 或 Claude Code session 單獨處理，完成後 git commit，並透過 Agent Communication Ledger 記錄兩個 agent、orchestrator 與使用者之間的派工、問題、回答、決策、測試與接棒紀錄。遇到 blocker 則寄信通知使用者並停止。不要用於單一工作、需求仍需人類逐階段決策、或後續階段範疇必須等前一階段完成後才能定義的工作，這些分別使用 ddd-doc/ddd-tdd 或 ddd-plan。"
 ---
 
 # DDD Queue
@@ -22,6 +22,10 @@ description: "DDD 長時間工作佇列技能。建立或執行 documents/queue/
 6. 自動批准只適用於清楚、低風險、可驗收的 item；模糊或高風險 item 必須 blocked。
 7. 執行 queue 前工作樹必須乾淨，避免自動 commit 夾帶使用者未提交變更。
 8. 相依 item 必須宣告 `depends_on` 與 `unlock_condition`；解鎖條件無法驗證時必須 blocked。
+9. 每個 worker 子 session 都必須把指定 item 當成一個新的 DDD 工作，完整執行 `ddd-start → ddd-doc → ddd-tdd`，不得直接改程式碼。
+10. 子 session 不進行即時對話；需要使用者回答時，寫入 queue 的 blocked / questions 欄位，orchestrator 通知使用者並停止。
+11. Queue 文件是 Codex、Claude Code、orchestrator 與使用者的共享通訊帳本；所有跨 session 訊息都必須追加到 `Agent Communication Ledger`。
+12. 通訊紀錄採 append-only：不得刪改既有 log entry；若先前紀錄錯誤，追加 correction / superseded entry。
 
 ## Queue 文件位置
 
@@ -52,6 +56,10 @@ auto_approve: true
 commit_required: true
 implemented_doc: —
 commit: —
+worker_session: —
+worker_log: —
+handoff_summary: —
+communication_entries: []
 
 ### 需求
 <清楚描述要完成的使用者行為>
@@ -76,6 +84,74 @@ commit: —
 - `auto_approve`: `true` 表示可由 worker 自行建立 F/R/B 文檔並視為已核准；但 worker 仍要在文檔清楚後才開始改程式碼。
 - `implemented_doc`: 完成後填入實際文件路徑，例如 `documents/implements/F03-user-search.md`
 - `commit`: 完成後填入 commit hash
+- `worker_session`: orchestrator 啟動子 session 時可填入 `codex` / `claude` 與時間戳，方便追蹤
+- `worker_log`: worker 完成或 blocked 時填入摘要、測試命令、風險與限制
+- `handoff_summary`: 給下一個 agent 的短接棒摘要，包含目前狀態、重要檔案、決策與風險
+- `communication_entries`: 關聯到此 item 的 `Agent Communication Ledger` entry id 清單，例如 `[L001, L004]`
+
+## Agent Communication Ledger
+
+每份 QXX 必須有全域 `Agent Communication Ledger`。這是兩個 agent 之間溝通、orchestrator 派工、使用者回答問題，以及事後追蹤決策的唯一來源。
+
+Ledger 原則：
+
+1. **Append-only**：只能追加新 entry，不刪除、不覆寫既有 entry。
+2. **可讀優先**：記錄可被使用者事後閱讀的操作摘要、問題、答案、決策、測試證據與接棒資訊。
+3. **不記錄隱藏推理**：不要保存私有推理草稿；保存可驗證的判斷、假設、依據與結論。
+4. **雙向訊息都記錄**：orchestrator → worker 的派工、worker → orchestrator 的狀態、worker → user 的問題、user → worker 的回答，都要有 entry。
+5. **長輸出用摘要**：stdout / 測試輸出太長時，記摘要與關鍵錯誤；若有外部 log 檔，再記路徑。
+
+建議格式：
+
+```md
+## Agent Communication Ledger (Append-only)
+
+### Log Index
+
+| Entry | Time | Item | From -> To | Type | Summary |
+|-------|------|------|------------|------|---------|
+| L001 | 2026-05-23 10:00 | Q01-01 | orchestrator -> codex | dispatch | 指派 Q01-01 |
+
+### Entries
+
+#### L001 — 2026-05-23 10:00 — Q01-01 — orchestrator -> codex — dispatch
+
+**Message**
+指派 Q01-01。請以 ddd-start -> ddd-doc -> ddd-tdd 處理，完成後 commit。
+
+**Context**
+- Queue file: `documents/queue/Q01-example.md`
+- Depends on: []
+- Unlock condition: 無
+
+**Expected Response**
+- 更新 item 狀態
+- 建立 F/R/B 文檔
+- 記錄紅燈與綠燈測試
+- commit hash
+
+**Artifacts**
+- —
+
+**Follow-up**
+- —
+```
+
+Entry `Type` 建議使用：
+
+- `dispatch`: orchestrator 指派 worker
+- `status`: worker 回報目前進度
+- `ddd-start`: worker 完成需求類型判斷
+- `ddd-doc`: worker 建立或更新 F/R/B 文檔
+- `tdd-red`: worker 記錄紅燈測試
+- `tdd-green`: worker 記錄綠燈與驗收
+- `question`: worker 需要使用者回答
+- `answer`: 使用者或 orchestrator 回答
+- `decision`: 記錄已採納的產品或技術決策
+- `handoff`: 給下一個 agent 的接棒摘要
+- `blocked`: worker blocked 並停止
+- `completed`: worker 完成 item
+- `correction`: 修正先前 entry
 
 ## 建立 Queue
 
@@ -97,6 +173,21 @@ commit: —
 ## 執行 Queue
 
 AI 目前所在 session 是 orchestrator。orchestrator 只負責挑選 item、啟動新的子 session、檢查結果、寄信與停止；不要在 orchestrator session 直接實作功能。
+
+### 子 Session 溝通模型
+
+使用 `codex exec` 或 `claude -p` 啟動的 worker 是非互動子 session。orchestrator 可以讀取它的 stdout / stderr 與最終結果，但不應假設能在執行中可靠地插入新問題或修正方向。
+
+預設溝通方式是文件協議：
+
+1. orchestrator 啟動 worker 前，先追加一筆 `dispatch` entry，並將 entry id 寫入 item 的 `communication_entries`。
+2. worker 開始後，先讀取全域 ledger、指定 item 的 `communication_entries`、所有依賴 item 的 `handoff_summary`。
+3. worker 完成 ddd-start / ddd-doc / ddd-tdd 重要節點時，追加對應 entry。
+4. worker 需要人類決策時，將 item 設為 `status: blocked`，追加 `question` 或 `blocked` entry，並在 item 中填入 `blocker_reason`、`questions` 或 `need_user_decision`。
+5. orchestrator 偵測 blocked 後寄信或回報使用者，並停止 queue。
+6. 使用者補充答案後，orchestrator 追加 `answer` entry，再啟動新的 worker session 繼續。
+
+若真的需要即時雙向溝通，應改用互動式 tmux / remote-control 類型的 runner；但這會降低 queue 的可重現性，不作為預設流程。
 
 ### 步驟 1 — 前置檢查
 
@@ -166,29 +257,47 @@ Item id: <QXX-YY>
 2. 讀取 queue 文件，只處理指定 item。
 3. 開始前確認工作樹乾淨；若不乾淨，回報 blocked，不要 commit。
 4. 檢查 depends_on；所有依賴 item 必須 completed 且有 commit，unlock_condition 必須可驗證。
-5. 閱讀依賴 item 的 implemented_doc、commit 摘要與測試記錄，建立本 item 所需上下文。
-6. 將指定 item 標成 in_progress。
-7. 根據 item type 建立或更新對應 FXX / BXX / RXX 文檔。
-8. 若 auto_approve: true 且需求、驗收方式、停止條件、依賴與解鎖條件都清楚，將該文檔視為本 item 的已核准文檔。
-9. 依照 ddd-tdd 執行紅燈、綠燈、驗收與文檔更新。
-10. 若需求模糊、高風險、測試無法穩定通過、需要使用者決策，將 item 標成 blocked，填寫 blocker_reason 與 need_user_decision，停止。
-11. 完成時更新 queue item：status: completed、implemented_doc、commit。
-12. git commit 必須只包含本 item 相關檔案；使用明確 git add 檔案清單，不要使用 git add .
-13. commit 後確認工作樹乾淨。
-14. 最終回覆只回報 item 狀態、commit hash、執行測試命令與任何限制。不要開始下一個 item。
+5. 閱讀 Agent Communication Ledger、指定 item 的 communication_entries、依賴 item 的 handoff_summary、implemented_doc、commit 摘要與測試記錄，建立本 item 所需上下文。
+6. 將指定 item 標成 in_progress，填入 worker_session，並追加 status entry。
+7. 以指定 item 作為新工作執行 ddd-start：判斷是 FXX / BXX / RXX，並載入 CONTEXT.md；追加 ddd-start entry。
+8. 執行 ddd-doc：建立或更新對應 FXX / BXX / RXX 文檔，內容必須包含需求、驗收標準、測試場景、停止條件與假設；追加 ddd-doc entry。
+9. 若 auto_approve: true 且 ddd-doc 產出的文檔清楚、低風險、可測試，將該文檔視為本 item 的已核准文檔；否則 blocked，追加 question / blocked entry，等待使用者審核。
+10. 執行 ddd-tdd：先寫失敗測試並確認紅燈，追加 tdd-red entry；再實作最小綠燈，最後驗收並更新文檔實作記錄，追加 tdd-green entry。
+11. 不得跳過紅燈測試；若無法建立合理失敗測試，blocked 並說明原因。
+12. 若需求模糊、高風險、測試無法穩定通過、需要使用者決策，將 item 標成 blocked，填寫 blocker_reason、questions 或 need_user_decision，追加 question / blocked entry，停止。
+13. 完成時更新 queue item：status: completed、implemented_doc、commit、worker_log、handoff_summary、communication_entries，並追加 handoff / completed entry。
+14. git commit 必須只包含本 item 相關檔案；使用明確 git add 檔案清單，不要使用 git add .
+15. commit 後確認工作樹乾淨。
+16. 最終回覆只回報 item 狀態、commit hash、執行測試命令、ledger entries 與任何限制。不要開始下一個 item。
 ```
+
+## Worker DDD 流程
+
+worker 子 session 必須按以下順序執行，缺一不可：
+
+1. **ddd-start**：將 queue item 當成使用者的新工作，判斷類型、載入 `CONTEXT.md`、檢查是否需要 grill / zoom-out / diagnose 等前置流程。若需求不適合自動批准，blocked。
+2. **ddd-doc**：建立或更新一份 FXX / BXX / RXX 文檔。queue item 不是實作文檔，只是派工來源；真正的需求權威仍是 F/R/B 文檔。
+3. **ddd-tdd**：以剛建立的 F/R/B 文檔作為唯一需求來源，執行紅燈、綠燈、驗收、文檔更新。
+4. **queue closeout**：更新 queue item 狀態、關聯文檔、測試命令、commit hash 與 worker log。
+5. **communication closeout**：追加 `handoff` / `completed` entry，更新 item 的 `handoff_summary` 與 `communication_entries`。
+
+若 worker 發現自己已經開始修改生產代碼但尚未建立 F/R/B 文檔，必須停止、回復本 item 未完成變更，先回到 ddd-doc。
 
 ## Worker 完成規則
 
 worker 完成 item 前必須：
 
-1. 建立或更新一份 F/R/B 文檔。
-2. 依該文檔新增或更新測試。
-3. 執行相關測試，必要時執行更廣的回歸測試。
-4. 更新 F/R/B 文檔的實作記錄。
-5. 更新 queue item 狀態與總覽表。
-6. 建立 git commit。
-7. 確認 `git status --short` 乾淨。
+1. 已在 worker log 中記錄 ddd-start 判斷結果。
+2. 建立或更新一份 F/R/B 文檔，並將路徑寫入 `implemented_doc`。
+3. 依該文檔新增或更新測試。
+4. 觀察並記錄至少一個正確原因的紅燈測試。
+5. 執行相關測試，必要時執行更廣的回歸測試。
+6. 更新 F/R/B 文檔的實作記錄。
+7. 更新 queue item 狀態、總覽表與 worker log。
+8. 更新 `handoff_summary`，讓下一個 agent 不必重新讀完整 stdout。
+9. 追加完整的 ledger entry：至少包含 dispatch、ddd-start、ddd-doc、tdd-red、tdd-green、handoff 或 blocked。
+10. 建立 git commit。
+11. 確認 `git status --short` 乾淨。
 
 建議 commit message：
 
@@ -215,9 +324,13 @@ blocked 時更新 item：
 ```md
 status: blocked
 blocker_reason: <具體原因>
+questions:
+- <需要使用者回答的問題>
 need_user_decision:
 - A: <選項>
 - B: <選項>
+worker_log: <已完成哪些步驟、卡在哪一步、是否有未提交變更>
+communication_entries: [<相關 LXXX>]
 ```
 
 不要 commit 不完整的生產代碼。若已產生部分變更且無法安全完成，留下清楚記錄並停止；orchestrator 不得繼續下一個 item。
@@ -272,6 +385,9 @@ DDD queue 執行結束。
 
 測試：
 - <各 item 執行過的主要命令>
+
+溝通紀錄：
+- Agent Communication Ledger: L001-L0XX
 
 Queue 文件：
 - documents/queue/Q01-xxx.md

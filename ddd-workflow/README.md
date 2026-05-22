@@ -33,7 +33,9 @@
       ↓
 orchestrator 每個 item 開新 Codex / Claude Code session
       ↓
-worker 完成單一 item → 測試 → git commit → 更新 queue
+worker 執行 ddd-start → ddd-doc → ddd-tdd → git commit → 更新 queue
+      ↓
+Agent Communication Ledger 記錄派工 / 問題 / 回答 / 測試 / 接棒
       ↓
 完成 batch limit 或 blocked 後停止
 ```
@@ -47,7 +49,7 @@ worker 完成單一 item → 測試 → git commit → 更新 queue
 | `/ddd-doc` | 建立與維護 FXX / RXX / BXX 文檔及模組文檔 |
 | `/ddd-tdd` | 文檔驅動的 TDD 實作，整合結構化除錯 |
 | `/ddd-plan` | 大型改動的 PXX 多階段規劃；適用於後續範疇需等前階段完成才知道 |
-| `/ddd-queue` | 多個已排序工作連續執行；可獨立或明確相依，每個 item 新 session 並各自 commit |
+| `/ddd-queue` | 多個已排序工作連續執行；可獨立或明確相依，每個 item 新 session 並各自 commit，QXX 內保留跨 agent 溝通紀錄 |
 
 ## Pocock 技能（按需使用）
 

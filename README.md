@@ -37,7 +37,7 @@ Matt Pocock 的技能庫（[github.com/mattpocock/skills](https://github.com/mat
 [improve-codebase-architecture]（可選）       ← Pocock：浮現 RXX 候選項
 ```
 
-多個已排序、可自動推進的工作可以改用 `ddd-queue`：先建立 `documents/queue/QXX`，再由 orchestrator 每次開一個新的 Codex / Claude Code session 處理單一 item；每完成一個 item 就測試、更新文檔、git commit，做滿 batch limit 或遇到 blocker 後停止。item 可以獨立，也可以透過 `depends_on` 與 `unlock_condition` 明確相依。
+多個已排序、可自動推進的工作可以改用 `ddd-queue`：先建立 `documents/queue/QXX`，再由 orchestrator 每次開一個新的 Codex / Claude Code session 處理單一 item；每完成一個 item 就測試、更新文檔、git commit，做滿 batch limit 或遇到 blocker 後停止。item 可以獨立，也可以透過 `depends_on` 與 `unlock_condition` 明確相依。QXX 也會作為跨 agent 通訊帳本，保留派工、問題、回答、決策、測試與接棒紀錄。
 
 ---
 
@@ -72,7 +72,7 @@ Matt Pocock 的技能庫（[github.com/mattpocock/skills](https://github.com/mat
 | `diagnose` | 當測試因意外原因失敗時的結構化除錯循環 | 紅燈階段產生令人困惑或不穩定的失敗 |
 | `triage` | BXX 錯誤修正文檔的狀態機工作流程 | 錯誤的重現路徑不清晰 |
 | `prototype` | 在提交 FXX 文檔前驗證方法的一次性探索 | 高度不確定的功能 |
-| `ddd-queue` | 多個已排序工作連續執行，每個 item 新 session 並各自 commit | 使用者希望 AI 連續完成 2 到 5 個可自動推進的功能或修正，減少人被打斷 |
+| `ddd-queue` | 多個已排序工作連續執行，每個 item 新 session 並各自 commit，保留跨 agent 溝通紀錄 | 使用者希望 AI 連續完成 2 到 5 個可自動推進的功能或修正，減少人被打斷，且事後能回看 agent 溝通 |
 
 ---
 

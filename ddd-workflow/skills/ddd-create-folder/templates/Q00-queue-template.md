@@ -7,6 +7,7 @@ version: 1.0
 status: pending
 batch_limit: 3
 mode: sequential
+communication_format_version: 1
 notify_email: <可選，阻塞時通知的 email>
 ---
 
@@ -30,6 +31,41 @@ item 可以彼此獨立，也可以連續相依。若相依，必須填寫 `depe
 
 ---
 
+## 3. Agent Communication Ledger (Append-only)
+
+> 本區是 Codex、Claude Code、orchestrator 與使用者的共享通訊帳本。只能追加，不要刪改既有 entry。若要修正，新增 `correction` entry。
+
+### Log Index
+
+| Entry | Time | Item | From -> To | Type | Summary |
+|-------|------|------|------------|------|---------|
+| L001 | <YYYY-MM-DD HH:MM> | QXX-01 | orchestrator -> codex | dispatch | <指派 QXX-01> |
+
+### Entries
+
+#### L001 — <YYYY-MM-DD HH:MM> — QXX-01 — orchestrator -> codex — dispatch
+
+**Message**
+<指派內容。例：請以 ddd-start -> ddd-doc -> ddd-tdd 處理 QXX-01，完成後更新 queue 並 commit。>
+
+**Context**
+- Depends on: []
+- Unlock condition: 無
+- Relevant docs: —
+
+**Expected Response**
+- 建立或更新 F/R/B 文檔
+- 記錄紅燈與綠燈測試
+- 更新 item 狀態、handoff_summary、commit hash
+
+**Artifacts**
+- —
+
+**Follow-up**
+- —
+
+---
+
 ## QXX-01 <工作名稱>
 
 id: QXX-01
@@ -42,6 +78,10 @@ auto_approve: true
 commit_required: true
 implemented_doc: —
 commit: —
+worker_session: —
+worker_log: —
+handoff_summary: —
+communication_entries: [L001]
 
 ### 需求
 
@@ -61,6 +101,21 @@ commit: —
 
 尚無。
 
+### 子 Session 溝通
+
+questions: []
+need_user_decision: []
+ledger_entries: [L001]
+
+### Agent Handoff Summary
+
+- Current state: pending
+- Important files: —
+- Decisions: —
+- Tests: —
+- Risks: —
+- Next agent notes: —
+
 ---
 
 ## QXX-02 <工作名稱>
@@ -75,6 +130,10 @@ auto_approve: true
 commit_required: true
 implemented_doc: —
 commit: —
+worker_session: —
+worker_log: —
+handoff_summary: —
+communication_entries: []
 
 ### 需求
 
@@ -93,6 +152,21 @@ commit: —
 
 尚無。
 
+### 子 Session 溝通
+
+questions: []
+need_user_decision: []
+ledger_entries: []
+
+### Agent Handoff Summary
+
+- Current state: pending
+- Important files: —
+- Decisions: —
+- Tests: —
+- Risks: —
+- Next agent notes: —
+
 ---
 
 ## QXX-03 <工作名稱>
@@ -107,6 +181,10 @@ auto_approve: true
 commit_required: true
 implemented_doc: —
 commit: —
+worker_session: —
+worker_log: —
+handoff_summary: —
+communication_entries: []
 
 ### 需求
 
@@ -125,10 +203,29 @@ commit: —
 
 尚無。
 
-## 3. Queue 執行規則
+### 子 Session 溝通
+
+questions: []
+need_user_decision: []
+ledger_entries: []
+
+### Agent Handoff Summary
+
+- Current state: pending
+- Important files: —
+- Decisions: —
+- Tests: —
+- Risks: —
+- Next agent notes: —
+
+## 4. Queue 執行規則
 
 1. 每個 item 必須由新的 Codex 或 Claude Code session 處理。
-2. 每個 item 完成後必須 git commit。
-3. 有相依關係時，必須確認 `depends_on` 全部 completed 且 `unlock_condition` 可驗證，才能開始下一個 item。
-4. 遇到 blocked 必須停止整個 queue，不得繼續後續 item。
-5. 一次最多處理 `batch_limit` 個 pending item，且不得超過 5 個。
+2. 每個 item 必須以 `ddd-start → ddd-doc → ddd-tdd` 完整流程處理。
+3. 每個 item 完成後必須 git commit。
+4. 有相依關係時，必須確認 `depends_on` 全部 completed 且 `unlock_condition` 可驗證，才能開始下一個 item。
+5. 所有跨 agent 溝通必須追加到 `Agent Communication Ledger`，並將 entry id 寫回對應 item 的 `communication_entries` / `ledger_entries`。
+6. 子 session 需要使用者回答時，必須寫入 `questions` / `need_user_decision`，追加 `question` 或 `blocked` ledger entry，並將 item 設為 blocked。
+7. 使用者回答後，orchestrator 必須追加 `answer` ledger entry，再啟動新的 worker session。
+8. 遇到 blocked 必須停止整個 queue，不得繼續後續 item。
+9. 一次最多處理 `batch_limit` 個 pending item，且不得超過 5 個。
