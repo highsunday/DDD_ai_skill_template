@@ -86,7 +86,7 @@
 | 工作佇列 | `QXX` | `Q00-queue-template.md` | 多個已排序、可自動推進的功能、Bug 修正或重構 |
 
 每份 QXX 文檔包含：
-- batch limit 與 blocked 通知設定
+- batch limit 與 blocked / completed 通知設定；若需要寄信，使用 `documents/ddd-email-notify.md` 或 QXX frontmatter 明確設定 `notify_email_from`（寄信來源）與 `notify_email_to`（寄去哪裡）
 - `Queue Intake Review`：在執行前集中使用 `grill-me` 釐清所有 item 的需求、設計問題、依賴、驗收方式與停止條件
 - 每個 item 的類型（FXX/RXX/BXX）、指定 agent、依賴、解鎖條件、狀態、關聯文檔與 commit hash
 - 每個 item 的需求、使用者可操作驗收方式與停止條件
@@ -95,7 +95,7 @@
 
 執行時由 orchestrator 讀取 QXX，先確認 `Queue Intake Review` 已完成、`ready_for_execution: true`，且每個要執行的 item 都是 `clarification_status: clarified`。接著對每個 pending item 啟動新的 worker session。worker 只處理單一 item，且必須完整走 `ddd-start → ddd-doc → ddd-tdd`。完成後測試、更新文檔、git commit，然後停止。
 
-非互動子 session 不做即時對話。需要使用者判斷時，worker 將 item 設為 blocked，寫入 `questions` / `need_user_decision`，並追加 ledger entry；orchestrator 通知使用者並停止 queue。使用者回答後，也由 orchestrator 追加 `answer` entry，讓後續 agent 能從 QXX 讀到必要溝通紀錄。為了控制 token，後續 worker 預設只讀 Queue Intake Review、指定 item、依賴 item handoff、Log Index 與相關 active entries；除非 blocked 或上下文矛盾，不讀完整 archive。
+非互動子 session 不做即時對話。需要使用者判斷時，worker 將 item 設為 blocked，寫入 `questions` / `need_user_decision`，並追加 ledger entry；orchestrator 通知使用者並停止 queue。若已設定 `notify_email_from` 與 `notify_email_to` 且目前環境有可用寄信工具，orchestrator 會寄出 blocked 通知；若缺少設定、寄件來源無法驗證或寄信失敗，則在目前對話回報 blocked，且不得繼續後續 item。queue worker 內部呼叫的 `/ddd-tdd` 不寄單項完成信；只有整批 queue 全部完成時，由 orchestrator 寄一次 completed 通知。使用者回答後，也由 orchestrator 追加 `answer` entry，讓後續 agent 能從 QXX 讀到必要溝通紀錄。為了控制 token，後續 worker 預設只讀 Queue Intake Review、指定 item、依賴 item handoff、Log Index 與相關 active entries；除非 blocked 或上下文矛盾，不讀完整 archive。
 
 ---
 
@@ -132,7 +132,7 @@
 
 ---
 
-## 五個 DDD 技能
+## 六個 DDD 技能
 
 ### `ddd-start`（新增）
 
@@ -198,7 +198,25 @@
 9. worker 只處理指定 item，依序執行 `ddd-start`、`ddd-doc`、`ddd-tdd`、更新 queue、git commit
 10. 所有跨 agent 訊息追加到 `Agent Communication Ledger`；長內容摘要留在 QXX，全文歸檔到 `documents/queue/logs/`
 11. 完成 batch limit 或遇到 blocked 後停止
-12. blocked 時寄信通知使用者，並保留後續 item 為 pending
+12. blocked 時使用 `notify_email_from` / `notify_email_to` 寄信通知使用者；若無可用寄信設定或工具，改在目前對話回報，並保留後續 item 為 pending
+13. 整批 queue 全部完成時寄 completed 通知；達到 batch limit 但仍有 pending item 時不寄完成通知
+
+---
+
+### `ddd-email-notify`（新增）
+
+**用途：** DDD workflow 的操作通知技能。負責顯示目前寄信 info，設定專案或 QXX 的寄信來源與收件信箱，並在 ddd-tdd completed、queue blocked、queue completed 時處理寄信與 ledger 記錄。
+
+**觸發時機：** 使用者直接輸入 `/ddd-email-notify` 查看目前寄信 info，要求設定通知信箱，或 `ddd-tdd` / `ddd-queue` 需要寄信通知使用者。
+
+**行為：**
+1. 讀取 `documents/ddd-email-notify.md` 或 QXX frontmatter 的 `notify_email_from` 與 `notify_email_to`
+2. 直接觸發時顯示目前 From、To、寄信工具狀態，以及 ddd-tdd completed / queue blocked / queue completed 的寄信時機
+3. 若舊文件只有 `notify_email`，視為 `notify_email_to` 並在下次更新時遷移
+4. 驗證兩個信箱欄位存在，且不將密碼、token、SMTP key 或 app password 寫入 QXX
+5. 確認目前環境有可用寄信工具，並確認寄件來源與已授權帳號一致
+6. 寄出 completed 或 blocked 通知；若無法寄信，改在目前對話回報
+7. 將寄信成功、失敗或 fallback 結果追加到 `Agent Communication Ledger`
 
 ---
 
@@ -239,8 +257,9 @@
 6. 實作通過測試所需的最小生產代碼（綠燈階段）
 7. 驗證每個驗收標準都有測試覆蓋
 8. 將實作記錄寫回文檔
-9. 詢問：「實作過程中是否暴露架構缺口？」若有，建議 `improve-codebase-architecture`
-10. 若為長時間實作週期，建議 `handoff` 保留 DDD 狀態
+9. 若本次不是 queue worker，依 `ddd-email-notify` 寄出 `/ddd-tdd` completed 通知；若是 queue worker，抑制單項完成信
+10. 詢問：「實作過程中是否暴露架構缺口？」若有，建議 `improve-codebase-architecture`
+11. 若為長時間實作週期，建議 `handoff` 保留 DDD 狀態
 
 不從模糊的聊天指令開始。如果不存在實作文檔，停止並要求提供一份。
 

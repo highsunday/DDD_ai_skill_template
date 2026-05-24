@@ -115,10 +115,10 @@ description: DDD 工作流程的統一入口。偵測需求類型並路由到正
 
 1. **queue 目標：** 這批工作要讓 AI 自主完成到什麼程度
 2. **item 清單：** 每個 item 的名稱、類型（FXX/RXX/BXX）、驗收方式、依賴與解鎖條件
-3. **執行設定：** batch limit、偏好的 agent、是否需要 blocked 時寄信
+3. **執行設定：** batch limit、偏好的 agent、是否需要 blocked / completed 時寄信；若需要寄信，提供 `notify_email_from`（寄信來源）與 `notify_email_to`（寄去哪裡）
 4. **集中釐清狀態：** 已完成 / 需要先 grill-me
 5. **上下文策略：** QXX 主文件只保留索引、摘要、active entries 與 handoff；長 log 歸檔到 `documents/queue/logs/`
 6. **CONTEXT.md 狀態：** 已載入 / 不存在
 
 範例：
-> 「這是一批已排序且可自動推進的工作，適合 `/ddd-queue`。共 3 個 item，Q02 依賴 Q01、Q03 依賴 Q02，預設 batch limit 3，blocked 時寄信通知。CONTEXT.md 已載入。請先建立 QXX queue 文件並集中執行 `/grill-me` 釐清所有 item；QXX ready 後，若使用者要求立即執行，作為 orchestrator 每個 item 啟動新的 Codex / Claude Code session。QXX 使用 compact context：主文件保留摘要、索引、active entries 與 handoff，長 log 歸檔。」
+> 「這是一批已排序且可自動推進的工作，適合 `/ddd-queue`。共 3 個 item，Q02 依賴 Q01、Q03 依賴 Q02，預設 batch limit 3，blocked 與整批 completed 時寄信通知；寄信來源為 `notify_email_from`，收件信箱為 `notify_email_to`。queue worker 內部呼叫的 `/ddd-tdd` 不寄單項完成信，只在整批完成時由 queue 寄一次。CONTEXT.md 已載入。請先建立 QXX queue 文件並集中執行 `/grill-me` 釐清所有 item；QXX ready 後，若使用者要求立即執行，作為 orchestrator 每個 item 啟動新的 Codex / Claude Code session。QXX 使用 compact context：主文件保留摘要、索引、active entries 與 handoff，長 log 歸檔。」

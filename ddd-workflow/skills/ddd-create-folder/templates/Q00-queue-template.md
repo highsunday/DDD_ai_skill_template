@@ -13,7 +13,11 @@ communication_format_version: 1
 context_policy: compact
 ledger_retention: latest_active_entries
 ledger_archive_dir: documents/queue/logs
-notify_email: <可選，阻塞時通知的 email>
+notify_email_from: <可選，寄信來源；必須是目前環境已授權可寄出的信箱>
+notify_email_to: <可選，通知收件信箱>
+notify_on_queue_blocked: true
+notify_on_queue_completed: true
+notify_email: <deprecated，可選；舊版阻塞通知收件信箱，請改用 notify_email_to>
 ---
 
 # Queue - XXX 長時間工作佇列
@@ -67,7 +71,21 @@ reviewed_at: —
 - [ ] 所有要執行的 item 都有使用者可操作的驗收方式
 - [ ] 所有相依 item 都有 `depends_on` 與 `unlock_condition`
 - [ ] 所有阻塞問題都已回答或對應 item 已標為 blocked / skipped
+- [ ] 若需要寄信通知，已設定 `notify_email_from` 與 `notify_email_to`
+- [ ] 若需要整批完成通知，`notify_on_queue_completed` 為 `true`
 - [ ] 可以將 `ready_for_execution` 改為 `true`
+
+### Email Notification Settings
+
+> 本區描述 blocked 時的寄信設定。QXX 只保存信箱地址，不保存密碼、token、SMTP key 或 app password。
+
+- From: `notify_email_from`（寄信來源；必須是目前執行環境已授權可寄出的信箱）
+- To: `notify_email_to`（blocked 或 completed 通知的收件信箱）
+- Queue blocked: `notify_on_queue_blocked`
+- Queue completed: `notify_on_queue_completed`
+- Backward compatibility: 若舊文件只有 `notify_email`，視為 `notify_email_to`，並在下次更新 QXX 時補上 `notify_email_to`
+- Delivery rule: 若寄信工具不支援指定 From，orchestrator 必須確認工具目前授權帳號與 `notify_email_from` 一致；不一致時停止並在目前對話回報 blocked
+- Suppression rule: 由 `/ddd-queue` worker 呼叫的 `/ddd-tdd` 不寄單項完成通知；只在整批 queue 全部完成時寄一次
 
 ## 3. 總覽
 
@@ -339,4 +357,5 @@ archive_refs: []
 8. 使用者回答後，orchestrator 必須追加 `answer` ledger entry，再啟動新的 worker session。
 9. 遇到 blocked 必須停止整個 queue，不得繼續後續 item。
 10. 一次最多處理 `batch_limit` 個 pending item，且不得超過 5 個。
-11. 下一個 worker 預設只讀 QXX frontmatter、Queue Intake Review、總覽、指定 item、依賴 item handoff、Log Index 與相關 active entries；除非 blocked 或上下文矛盾，不讀完整 archive。
+11. 由 queue worker 呼叫的 `/ddd-tdd` 不寄完成通知；只有整批 queue 全部完成時，由 orchestrator 依 `notify_on_queue_completed` 寄一次完成通知。
+12. 下一個 worker 預設只讀 QXX frontmatter、Queue Intake Review、總覽、指定 item、依賴 item handoff、Log Index 與相關 active entries；除非 blocked 或上下文矛盾，不讀完整 archive。

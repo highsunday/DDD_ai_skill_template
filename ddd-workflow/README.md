@@ -43,6 +43,8 @@ Agent Communication Ledger 記錄派工 / 問題 / 回答 / 測試 / 接棒
 完成 batch limit 或 blocked 後停止
 ```
 
+DDD 通知設定放在 `documents/ddd-email-notify.md`，QXX 也可用 frontmatter 覆蓋。信箱欄位是 `notify_email_from`（寄信來源，必須是目前環境已授權可寄出的信箱）與 `notify_email_to`（寄去哪裡）。`/ddd-tdd` 單獨完成會寄 completed 通知；`/ddd-queue` blocked 與整批全部完成會寄通知；由 queue worker 呼叫的 `/ddd-tdd` 不寄單項完成信。QXX 不保存 email 密碼、token 或 SMTP key；寄信工具不可用時，orchestrator 會改在目前對話回報。
+
 ## DDD 技能（主流程）
 
 | 技能 | 用途 |
@@ -53,6 +55,7 @@ Agent Communication Ledger 記錄派工 / 問題 / 回答 / 測試 / 接棒
 | `/ddd-tdd` | 文檔驅動的 TDD 實作，整合結構化除錯 |
 | `/ddd-plan` | 大型改動的 PXX 多階段規劃；適用於後續範疇需等前階段完成才知道 |
 | `/ddd-queue` | 多個已排序工作連續執行；先集中 grill-me 釐清所有 item，再逐項新 session 執行並各自 commit，QXX 內保留精簡 ledger 與 archive 索引 |
+| `/ddd-email-notify` | 顯示目前寄信 info，設定與寄出 DDD 操作通知；管理 `notify_email_from` / `notify_email_to`，說明 tdd completed、queue blocked、queue completed 的寄信時機 |
 
 ## Pocock 技能（按需使用）
 
@@ -84,6 +87,7 @@ ddd-workflow/
     ├── ddd-tdd/     ← TDD 實作
     ├── ddd-plan/    ← 大型改動規劃
     ├── ddd-queue/   ← 長時間工作佇列
+    ├── ddd-email-notify/ ← DDD tdd / queue 通知信設定、狀態顯示與寄送
     ├── ddd-create-folder/
     │   └── templates/ ← F00 / R00 / B00 / P00 / Q00 / G00 的唯一模板來源
     ├── grill-me/
