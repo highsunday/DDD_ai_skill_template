@@ -1,6 +1,6 @@
 ---
 name: ddd-create-folder
-description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/ddd-email-notify.md、documents/implements/（含 F00 / R00 / B00 模板）、documents/planning/（含 P00 模板）、documents/queue/（含 Q00 長時間工作佇列模板與 logs/ 歸檔資料夾）、documents/modules/ 與 documents/guides/（含 G00 模板）。當在新專案中初始化 DDD 工作流程時使用。
+description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/ddd-email-notify.md、documents/implements/（含 F00 / R00 / B00 模板）、documents/planning/（含 P00 模板）、documents/queue/（含 Q00 長時間工作佇列模板與 logs/ 歸檔資料夾）、documents/modules/、documents/guides/（含 G00 模板）與 reference-examples/（含 export/ import/ 子資料夾，供 ddd-export-example / ddd-import-example 存放跨專案範例）。當在新專案中初始化 DDD 工作流程時使用。
 ---
 
 # DDD Create Folder
@@ -26,6 +26,10 @@ documents/
 ├── modules/        ← 模組高層次文檔存放處（初始為空）
 └── guides/         ← GXX 操作指南存放處（執行測試、打包等）
     └── G00-guide-template.md
+
+reference-examples/  ← 跨專案最小可跑範例（頂層，獨立於 documents/）
+├── export/          ← 本專案用 ddd-export-example 導出的 bundle
+└── import/          ← 從別專案複製進來、給 ddd-import-example 參考的 bundle
 ```
 
 若 `documents/` 資料夾已存在，告知使用者並詢問是否繼續（避免覆蓋現有內容）。
@@ -41,6 +45,8 @@ mkdir -p documents/queue
 mkdir -p documents/queue/logs
 mkdir -p documents/modules
 mkdir -p documents/guides
+mkdir -p reference-examples/export
+mkdir -p reference-examples/import
 ```
 
 ## 步驟三 — 寫入模板檔案
@@ -98,6 +104,8 @@ DDD 資料夾初始化完成：
   ✓ documents/queue/logs/
   ✓ documents/modules/
   ✓ documents/guides/
+  ✓ reference-examples/export/
+  ✓ reference-examples/import/
   ✓ documents/ddd-email-notify.md
   ✓ documents/implements/F00-feature-template.md
   ✓ documents/implements/R00-refactor-template.md

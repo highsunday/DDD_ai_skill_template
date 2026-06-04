@@ -50,6 +50,7 @@ Matt Pocock 的技能庫（[github.com/mattpocock/skills](https://github.com/mat
 | `grill-me` | 在 `doc-maintain` 草擬任何內容之前，深入挖掘人類的需求 | 使用者只提供了模糊的想法 |
 | `grill-with-docs` | 對照現有模組文檔和程式碼庫驗證需求 | 需求涉及現有架構 |
 | `to-prd` | 將非正式描述轉換為結構化草稿，供 `doc-maintain` 填充 | 使用者有粗略想法但缺乏清晰規格 |
+| `ddd-import-example` | 參考別專案導出的最小可跑範例，生成引用範例的 FXX 草稿（含翻譯自範例 smoke test 的驗收條件），再交給 `ddd-tdd` | 已把別專案的範例 bundle 複製進 `reference-examples/import/`，想照它在本專案加同類功能 |
 
 **為何重要：** FXX 文檔是 AI 在實作時的唯一提示。如果文檔薄弱，所有下游步驟都會退化。在撰寫前進行挖掘，是整個流水線中槓桿最高的介入點。
 
@@ -82,6 +83,7 @@ Matt Pocock 的技能庫（[github.com/mattpocock/skills](https://github.com/mat
 |---|---|---|
 | `improve-codebase-architecture` | 浮現實作過程中發現的架構技術債 → 輸入新的 RXX 文檔 | 任何重要的綠燈階段完成後 |
 | `handoff` | 保留跨上下文重置的 DDD 狀態的緊湊會話摘要 | 長時間的實作週期 |
+| `ddd-export-example` | 把本專案某個已成功的功能蒸餾成獨立可跑、已驗證綠燈的最小範例，輸出到 `reference-examples/export/` 供別專案參考 | 想把一個成功功能導出成範例，好在別專案以 `ddd-import-example` 重做類似功能 |
 
 ---
 
