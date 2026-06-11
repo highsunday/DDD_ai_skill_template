@@ -56,6 +56,8 @@ DDD 通知設定放在 `documents/ddd-email-notify.md`，QXX 也可用 frontmatt
 | `/ddd-plan` | 大型改動的 PXX 多階段規劃；適用於後續範疇需等前階段完成才知道 |
 | `/ddd-queue` | 多個已排序工作連續執行；先集中 grill-me 釐清所有 item，再逐項新 session 執行並各自 commit，QXX 內保留精簡 ledger 與 archive 索引 |
 | `/ddd-email-notify` | 顯示目前寄信 info，設定與寄出 DDD 操作通知；管理 `notify_email_from` / `notify_email_to`，說明 tdd completed、queue blocked、queue completed 的寄信時機 |
+| `/ddd-export-example` | 把本專案某個已成功功能蒸餾成獨立可跑、已驗證綠燈的最小範例，輸出到 `reference-examples/export/`，供別專案參考重做 |
+| `/ddd-import-example` | 參考 `reference-examples/import/` 下別專案導出的範例，生成引用範例的 FXX 草稿（含翻譯自 smoke test 的驗收條件），交給 `/ddd-tdd` 實作 |
 
 ## Pocock 技能（按需使用）
 
@@ -88,6 +90,9 @@ ddd-workflow/
     ├── ddd-plan/    ← 大型改動規劃
     ├── ddd-queue/   ← 長時間工作佇列
     ├── ddd-email-notify/ ← DDD tdd / queue 通知信設定、狀態顯示與寄送
+    ├── ddd-export-example/ ← 導出最小可跑範例到 reference-examples/export/
+    │   └── templates/ ← MANIFEST 模板
+    ├── ddd-import-example/ ← 參考 reference-examples/import/ 範例生成 FXX
     ├── ddd-create-folder/
     │   └── templates/ ← F00 / R00 / B00 / P00 / Q00 / G00 的唯一模板來源
     ├── grill-me/
