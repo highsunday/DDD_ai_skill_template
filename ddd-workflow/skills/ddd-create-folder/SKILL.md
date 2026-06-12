@@ -1,6 +1,6 @@
 ---
 name: ddd-create-folder
-description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/ddd-email-notify.md、documents/implements/（含 F00 / R00 / B00 模板）、documents/planning/（含 P00 模板）、documents/queue/（含 Q00 長時間工作佇列模板與 logs/ 歸檔資料夾）、documents/modules/、documents/guides/（含 G00 模板）與 reference-examples/（含 export/ import/ 子資料夾，供 ddd-export-example / ddd-import-example 存放跨專案範例）。當在新專案中初始化 DDD 工作流程時使用。
+description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/ddd-email-notify.md、documents/implements/（含 F00 / R00 / B00 模板）、documents/planning/（含 P00 模板）、documents/queue/（含 Q00 長時間工作佇列模板與 logs/ 歸檔資料夾）、documents/bugs/（含 BUG00 硬 bug 排查軌跡模板）、documents/modules/、documents/guides/（含 G00 模板）與 reference-examples/（含 export/ import/ 子資料夾，供 ddd-export-example / ddd-import-example 存放跨專案範例）。當在新專案中初始化 DDD 工作流程時使用。
 ---
 
 # DDD Create Folder
@@ -23,6 +23,8 @@ documents/
 ├── queue/          ← QXX 長時間工作佇列存放處
 │   ├── Q00-queue-template.md
 │   └── logs/       ← queue 長 log / archive 存放處
+├── bugs/           ← BUG-XX 硬 bug 排查軌跡存放處（ddd-debug-trace 使用）
+│   └── BUG00-trace-template.md
 ├── modules/        ← 模組高層次文檔存放處（初始為空）
 └── guides/         ← GXX 操作指南存放處（執行測試、打包等）
     └── G00-guide-template.md
@@ -43,6 +45,7 @@ mkdir -p documents/implements
 mkdir -p documents/planning
 mkdir -p documents/queue
 mkdir -p documents/queue/logs
+mkdir -p documents/bugs
 mkdir -p documents/modules
 mkdir -p documents/guides
 mkdir -p reference-examples/export
@@ -59,6 +62,7 @@ mkdir -p reference-examples/import
 - `templates/B00-bugfix-template.md`   → `documents/implements/B00-bugfix-template.md`
 - `templates/P00-planning-template.md` → `documents/planning/P00-planning-template.md`
 - `templates/Q00-queue-template.md`    → `documents/queue/Q00-queue-template.md`
+- `templates/BUG00-trace-template.md`  → `documents/bugs/BUG00-trace-template.md`
 - `templates/G00-guide-template.md`    → `documents/guides/G00-guide-template.md`
 
 若目標檔案已存在，**不覆蓋**，並告知使用者跳過了哪些檔案。
@@ -102,6 +106,7 @@ DDD 資料夾初始化完成：
   ✓ documents/planning/
   ✓ documents/queue/
   ✓ documents/queue/logs/
+  ✓ documents/bugs/
   ✓ documents/modules/
   ✓ documents/guides/
   ✓ reference-examples/export/
@@ -112,6 +117,7 @@ DDD 資料夾初始化完成：
   ✓ documents/implements/B00-bugfix-template.md
   ✓ documents/planning/P00-planning-template.md
   ✓ documents/queue/Q00-queue-template.md
+  ✓ documents/bugs/BUG00-trace-template.md
   ✓ documents/guides/G00-guide-template.md
   [✓ CONTEXT.md（若使用者選擇建立）]
 

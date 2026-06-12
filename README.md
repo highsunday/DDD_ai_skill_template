@@ -67,7 +67,8 @@ DDD 在流程的每個節點都有對應設計來攔截這四個問題。
 ├─ 改現有模組       → /ddd-start → grill-with-docs 驗證架構
 ├─ 全新功能         → /ddd-start → ddd-doc FXX
 ├─ 重構             → /ddd-start → zoom-out → ddd-doc RXX
-├─ Bug              → /ddd-start → ddd-doc BXX
+├─ Bug（知道要改哪）→ /ddd-start → ddd-doc BXX
+├─ Bug（根因未明）  → /ddd-start → ddd-debug-trace（持久化排查軌跡，逐步收斂）
 ├─ 多個工作一次做   → /ddd-queue（每個 item 有明確需求與驗收方式）
 └─ 大型改動         → /ddd-plan（後期細節要等前期結果才能定）
 ```
@@ -91,6 +92,7 @@ documents/
 ├── planning/                   ← PXX 多階段規劃書
 ├── queue/                      ← QXX 工作佇列
 │   └── logs/
+├── bugs/                       ← BUG-XX 硬 bug 排查軌跡
 ├── modules/                    ← 模組高層次文檔
 └── guides/                     ← GXX 操作指南
 CONTEXT.md                      ← 領域詞彙表（可選）
@@ -110,7 +112,8 @@ CONTEXT.md                      ← 領域詞彙表（可選）
 | 涉及現有架構的新功能 | `grill-with-docs` → `ddd-doc FXX` |
 | 規格清晰的新功能 | `ddd-doc FXX` |
 | 重構任務 | `zoom-out` → `ddd-doc RXX` |
-| Bug 回報 | `ddd-doc BXX` |
+| Bug 回報（根因已知、可乾淨修） | `ddd-doc BXX` |
+| Bug 回報（根因未明、硬 bug） | `ddd-debug-trace` |
 | 2-5 個工作想一次做完 | `ddd-queue` |
 | 多階段大型改動 | `ddd-plan` |
 
@@ -138,6 +141,25 @@ CONTEXT.md                      ← 領域詞彙表（可選）
 4. **綠燈**：實作最小生產代碼
 5. **驗收**：確認每個驗收標準都有測試覆蓋
 6. 將實作記錄寫回文檔
+
+---
+
+### `/ddd-debug-trace` — 硬 bug 自主排查
+
+針對**根因未明、要多輪實驗才能收斂**的 bug。把整段排查軌跡持久化成 `documents/bugs/BUG-XX.md`，讓每次接手的 AI 都從上次收斂的位置繼續，而不是每次重新往相同地方找錯。**一個 bug 反覆找不到根因、或可能跨 session／換 agent 接手時使用。**
+
+**與 BXX 的差別：** BXX 是「已經知道要改哪裡」的修正規格；`ddd-debug-trace` 是「還不知道根因」的調查史。
+
+**運作方式：**
+1. 掃描 `documents/bugs/`：有既有文件先讀置頂「狀態快照」載入收斂結果；沒有就用 `grill-me` 逼出精確症狀、重現與帶基準值的完成條件，建立 BUG-XX 文件
+2. 從乾淨 working tree 開始，自主循環：**宣告實驗 → 改 → 測量指標 → 判斷**，每步即時寫回文件
+3. **部分改善**立刻 commit 作為新基準點；**退步/無變化**則 `git restore` 並把該範圍寫入「已排除」
+4. 已排除範圍與已確認事實**只進不退**，不重複調查
+5. 收斂到 `resolved` 後，交棒 `ddd-doc` 把根因＋修法＋回歸測試落成一份 BXX，並雙向連結
+
+文件持續維護的內容：狀態快照、錯誤指紋、已確認事實、已排除/可疑點、當前假說、逐次實驗紀錄。
+
+> 也可從 `ddd-tdd` 中途升級進來：本以為是簡單 bug 走了 BXX，結果紅燈一直查不出、`diagnose` 也卡住時，升級到 `ddd-debug-trace`。
 
 ---
 
@@ -300,6 +322,7 @@ Q01-01 完成並 commit 後，AI 自動解鎖 Q01-02 繼續。
 | `BXX` | Bug 修正規格 | `documents/implements/` | 重現並修正缺陷 |
 | `PXX` | 多階段規劃書 | `documents/planning/` | 橫跨多模組的大型改動 |
 | `QXX` | 工作佇列 | `documents/queue/` | 2-5 個可自動推進的工作 |
+| `BUG-XX` | Bug 排查軌跡 | `documents/bugs/` | 根因未明、需多輪實驗收斂的硬 bug（收斂後落成 BXX） |
 | `GXX` | 操作指南 | `documents/guides/` | 執行測試、打包等操作說明 |
 
 模組文檔（`documents/modules/`）：高層次描述現有模組的職責、邊界、依賴與已知限制。隨代碼同步更新，代碼與文檔衝突時以代碼為準。
@@ -312,7 +335,8 @@ Q01-01 完成並 commit 後，AI 自動解鎖 Q01-02 繼續。
 |---|---|
 | 新功能 | `/ddd-start` → 描述需求 → 核准 FXX → `/ddd-tdd` |
 | 需求模糊 | `/ddd-start` → AI 自動 grill-me → 收斂後進 ddd-doc |
-| 發現 Bug | `/ddd-start` → 描述現象與重現步驟 → 核准 BXX → `/ddd-tdd` |
+| 發現 Bug（知道要改哪） | `/ddd-start` → 描述現象與重現步驟 → 核准 BXX → `/ddd-tdd` |
+| 硬 Bug（根因找不到） | `/ddd-start` → `/ddd-debug-trace` → 自主排查收斂 → 落成 BXX |
 | 重構 | `/ddd-start` → zoom-out 確認範疇 → 核准 RXX → `/ddd-tdd` |
 | 多個工作批次完成 | `/ddd-start` → ddd-queue → 確認 QXX → 自動執行 |
 | 大型分階段改動 | `/ddd-start` → 說「幫我規劃」→ 核准 PXX → 逐階段執行 |
