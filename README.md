@@ -1,5 +1,7 @@
 # DDD x Pocock — AI-Assisted Development Workflow
 
+**English** | [繁體中文](README.zh.md)
+
 **DDD (Document-Driven Development)** means: write the document first, then write the code.
 
 **AI drafts the document → you review and approve → AI implements from the document**

@@ -1,5 +1,7 @@
 # DDD × Pocock — AI 輔助開發工作流程
 
+[English](README.md) | **繁體中文**
+
 **DDD（Document-Driven Development）** 就是：先寫文檔，再寫代碼。
 
 **AI 起草文檔 → 你審查核准 → AI 依文檔實作**
