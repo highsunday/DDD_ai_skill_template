@@ -1,40 +1,40 @@
 ---
 name: ddd-queue
-description: "DDD 長時間工作佇列技能。建立或執行 documents/queue/ 下的 QXX queue 文件，適用於 2 到 5 個已排序、可自動推進的功能、Bug 修正或重構工作；建立 queue 時必須先用集中式 grill-me 釐清所有 item 的需求、設計問題、依賴、驗收與停止條件，更新 QXX 後才允許逐項執行。每個 item 必須由新的 Codex 或 Claude Code session 單獨處理，完整執行 ddd-start、ddd-doc、ddd-tdd，完成後 git commit，並透過 Agent Communication Ledger 記錄兩個 agent、orchestrator 與使用者之間的派工、問題、回答、決策、測試與接棒紀錄。遇到 blocker 則寄信通知使用者並停止；整批全部完成時寄完成通知。queue worker 內部呼叫的 ddd-tdd 不寄單項完成通知。不要用於單一工作、需求仍需人類逐階段決策、或後續階段範疇必須等前一階段完成後才能定義的工作，這些分別使用 ddd-doc/ddd-tdd 或 ddd-plan。"
+description: "DDD long-running work queue skill. Creates or executes QXX queue documents under documents/queue/, suitable for 2 to 5 ordered, auto-advanceable feature, bug fix, or refactor tasks. Before creating a queue, a centralized grill-me must be run to clarify requirements, design questions, dependencies, acceptance criteria, and stop conditions for all items; the QXX must be updated before any item may be executed. Each item must be handled by a new Codex or Claude Code session, fully running ddd-start, ddd-doc, and ddd-tdd, then git committed, with all dispatch, questions, answers, decisions, tests, and handoffs recorded in the Agent Communication Ledger between the two agents, orchestrator, and user. On blocker, send email to notify the user and stop; send a completed notification when the entire batch finishes. ddd-tdd called internally by a queue worker must not send a per-item completion notification. Do not use for a single task, for work where requirements still need human stage-by-stage decisions, or for work where the scope of later stages cannot be defined until an earlier stage completes — use ddd-doc/ddd-tdd or ddd-plan for those cases instead."
 ---
 
 # DDD Queue
 
-管理一批已排序、可自動推進的 DDD 工作，目標是延長 AI 可自主工作的時間，減少使用者被逐項打斷。`ddd-queue` 可以處理獨立 item，也可以處理明確相依的連續 item；`ddd-plan` 則處理尚需要規劃、拆解或人類審查的大型改動。
+Manages a batch of ordered, auto-advanceable DDD tasks, aiming to extend the period during which AI can work autonomously and reduce per-item interruptions to the user. `ddd-queue` handles both independent items and explicitly dependent sequential items; `ddd-plan` handles large changes that still require planning, decomposition, or human review.
 
-判斷方式：
+How to decide:
 
-- 使用 `ddd-queue`：使用者已能列出 2 到 5 個具體 item，且每個 item 都有需求、驗收方式、停止條件；若有相依，依賴與解鎖條件能在文件、commit 或測試結果中被確認。
-- 使用 `ddd-plan`：後續 item 的範疇要等前一階段完成才知道、存在架構路線選擇、或階段拆分本身需要人類審查。
+- Use `ddd-queue`: the user can already list 2 to 5 specific items, each with requirements, acceptance criteria, and stop conditions; if there are dependencies, the dependency and unlock condition can be confirmed from documents, commits, or test results.
+- Use `ddd-plan`: the scope of later items is unknown until an earlier stage completes, there are architectural route choices, or the stage decomposition itself requires human review.
 
-## 核心規則
+## Core rules
 
-1. 每次只讓一個新 session 處理一個 queue item。
-2. 不在同一個 Codex / Claude Code session 連續實作多個 item。
-3. 每完成一個 item 必須建立一個 git commit，commit 內包含程式碼、測試、F/R/B 文檔與 queue 狀態更新。
-4. 一次執行最多 5 個 item；未指定時預設最多 3 個。
-5. 遇到 blocker 立即停止整個 queue，不繼續下一個 item。
-6. 自動批准只適用於清楚、低風險、可驗收的 item；模糊或高風險 item 必須 blocked。
-7. 執行 queue 前工作樹必須乾淨，避免自動 commit 夾帶使用者未提交變更。
-8. 相依 item 必須宣告 `depends_on` 與 `unlock_condition`；解鎖條件無法驗證時必須 blocked。
-9. 每個 worker 子 session 都必須把指定 item 當成一個新的 DDD 工作，完整執行 `ddd-start → ddd-doc → ddd-tdd`，不得直接改程式碼。
-10. 子 session 不進行即時對話；需要使用者回答時，寫入 queue 的 blocked / questions 欄位，orchestrator 通知使用者並停止。
-11. Queue 文件是 Codex、Claude Code、orchestrator 與使用者的共享通訊帳本；所有跨 session 訊息都必須追加到 `Agent Communication Ledger`。
-12. 通訊紀錄採 append-only：不得刪改既有 log entry；若先前紀錄錯誤，追加 correction / superseded entry。
-13. 建立 queue 時必須先集中執行 `grill-me`，一次性釐清所有 item 的需求、設計風險、依賴、驗收與停止條件。
-14. Queue 未完成集中釐清前不得執行 worker；執行時必須確認 `intake_grill_status: completed` 且每個要執行的 item 都是 `clarification_status: clarified`。
-15. QXX 主文件只保留執行所需摘要、索引與未解決問題；長 stdout、完整對話與歷史細節歸檔到 `documents/queue/logs/`，避免後續 worker 重複消耗 token。
-16. 若 queue 要在 blocked 或整批完成時寄信，QXX frontmatter 或 `documents/ddd-email-notify.md` 必須明確設定 `notify_email_from` 與 `notify_email_to`；寄信與設定驗證交給 `ddd-email-notify` 規則處理，不得把 email 密碼、token、SMTP key 或 app password 寫入 QXX。
-17. queue worker 內部呼叫的 `ddd-tdd` 不寄單項完成通知；只有 queue orchestrator 在整批全部完成時寄一次 completed 通知。
+1. Only let one new session handle one queue item at a time.
+2. Do not implement multiple items consecutively in the same Codex / Claude Code session.
+3. Every completed item must produce one git commit containing code, tests, F/R/B documents, and a queue status update.
+4. Execute at most 5 items per run; default to at most 3 when unspecified.
+5. On a blocker, stop the entire queue immediately — do not continue to the next item.
+6. Auto-approve applies only to clear, low-risk, verifiable items; ambiguous or high-risk items must be blocked.
+7. The working tree must be clean before executing the queue to prevent auto-commits from including uncommitted user changes.
+8. Dependent items must declare `depends_on` and `unlock_condition`; the queue must be blocked when an unlock condition cannot be verified.
+9. Every worker sub-session must treat the assigned item as a new DDD task and fully execute `ddd-start → ddd-doc → ddd-tdd` — direct code modification is not permitted.
+10. Sub-sessions do not conduct real-time conversations; when user input is needed, write to the item's blocked / questions fields, and the orchestrator notifies the user and stops.
+11. The queue document is the shared communication ledger for Codex, Claude Code, the orchestrator, and the user; all cross-session messages must be appended to the `Agent Communication Ledger`.
+12. Communication records are append-only: existing log entries must not be deleted or overwritten; if a prior entry is incorrect, append a correction / superseded entry.
+13. When creating a queue, a centralized `grill-me` must be run first to clarify requirements, design risks, dependencies, acceptance criteria, and stop conditions for all items in one session.
+14. No worker may be executed before the queue's centralized clarification is complete; at execution time, `intake_grill_status: completed` must be confirmed and every item to be executed must be `clarification_status: clarified`.
+15. The QXX main document retains only the summary, index, and unresolved questions needed for execution; long stdout, full conversations, and historical details are archived to `documents/queue/logs/` to avoid repeated token consumption by later workers.
+16. If the queue is configured to send email on blocked or batch-completed events, `notify_email_from` and `notify_email_to` must be explicitly set in the QXX frontmatter or `documents/ddd-email-notify.md`; email sending and settings validation are delegated to the `ddd-email-notify` rules — email passwords, tokens, SMTP keys, or app passwords must not be written into the QXX.
+17. `ddd-tdd` called internally by a queue worker must not send a per-item completion notification; only the queue orchestrator sends one completed notification when the entire batch finishes.
 
-## Queue 文件位置
+## Queue document location
 
-queue 文件放在專案根目錄：
+Queue documents are placed in the project root:
 
 ```text
 documents/queue/
@@ -42,14 +42,14 @@ documents/queue/
 └── Q01-<batch-name>.md
 ```
 
-若 `documents/queue/Q00-queue-template.md` 不存在，從 `ddd-create-folder/templates/Q00-queue-template.md` 複製，或依照本技能的格式建立。
+If `documents/queue/Q00-queue-template.md` does not exist, copy it from `ddd-create-folder/templates/Q00-queue-template.md`, or create it following the format defined in this skill.
 
-## Queue Item 格式
+## Queue Item format
 
-每個 item 必須有以下欄位：
+Each item must have the following fields:
 
 ```md
-## Q01-01 <功能名稱>
+## Q01-01 <feature name>
 
 id: Q01-01
 type: FXX
@@ -57,7 +57,7 @@ agent: codex
 status: pending
 clarification_status: pending
 depends_on: []
-unlock_condition: 無
+unlock_condition: none
 auto_approve: true
 commit_required: true
 implemented_doc: —
@@ -67,85 +67,85 @@ worker_log: —
 handoff_summary: —
 communication_entries: []
 
-### 需求
-<清楚描述要完成的使用者行為>
+### Requirements
+<clear description of the user behavior to be completed>
 
-### 驗收方式
-- [ ] <使用者可操作的確認動作與預期結果>
+### Acceptance criteria
+- [ ] <user-operable confirmation action and expected result>
 
-### 停止條件
-- <何時應 blocked 而不是自行猜測>
+### Stop conditions
+- <when to block rather than guess>
 
-### 阻塞記錄
-尚無。
+### Blocker log
+None yet.
 ```
 
-欄位規則：
+Field rules:
 
 - `type`: `FXX` / `BXX` / `RXX`
 - `agent`: `codex` / `claude` / `auto`
 - `status`: `pending` / `in_progress` / `completed` / `blocked` / `skipped`
-- `clarification_status`: `pending` / `clarifying` / `clarified` / `blocked`；只有 `clarified` 可以進入 worker
-- `depends_on`: 依賴的 item id 清單，例如 `[Q01-01]`；無依賴時填 `[]`
-- `unlock_condition`: 何時可以開始此 item，例如 `Q01-01 completed 且登入頁已可正常提交`
-- `auto_approve`: `true` 表示可由 worker 自行建立 F/R/B 文檔並視為已核准；但 worker 仍要在文檔清楚後才開始改程式碼。
-- `implemented_doc`: 完成後填入實際文件路徑，例如 `documents/implements/F03-user-search.md`
-- `commit`: 完成後填入 commit hash
-- `worker_session`: orchestrator 啟動子 session 時可填入 `codex` / `claude` 與時間戳，方便追蹤
-- `worker_log`: worker 完成或 blocked 時填入摘要、測試命令、風險與限制
-- `handoff_summary`: 給下一個 agent 的短接棒摘要，包含目前狀態、重要檔案、決策與風險
-- `communication_entries`: 關聯到此 item 的 `Agent Communication Ledger` entry id 清單，例如 `[L001, L004]`
+- `clarification_status`: `pending` / `clarifying` / `clarified` / `blocked`; only `clarified` items may enter a worker
+- `depends_on`: list of dependent item ids, e.g. `[Q01-01]`; use `[]` when there are no dependencies
+- `unlock_condition`: when this item may begin, e.g. `Q01-01 completed and login page can submit normally`
+- `auto_approve`: `true` means the worker may create the F/R/B document and treat it as approved; however, the worker must still wait until the document is clear before modifying code.
+- `implemented_doc`: fill in the actual document path after completion, e.g. `documents/implements/F03-user-search.md`
+- `commit`: fill in the commit hash after completion
+- `worker_session`: the orchestrator may fill in `codex` / `claude` and a timestamp when starting a sub-session to aid tracking
+- `worker_log`: fill in a summary, test commands, risks, and limitations when the worker completes or is blocked
+- `handoff_summary`: a short handoff summary for the next agent, including current state, key files, decisions, and risks
+- `communication_entries`: list of `Agent Communication Ledger` entry ids associated with this item, e.g. `[L001, L004]`
 
 ## Email Notification Settings
 
-QXX 支援 blocked 與整批 completed 通知信。QXX frontmatter 可覆蓋 project config 的寄信設定：
+QXX supports blocked and batch-completed notification emails. QXX frontmatter can override the project config's email settings:
 
 ```yaml
-notify_email_from: <可選，寄信來源；必須是目前環境已授權可寄出的信箱>
-notify_email_to: <可選，通知收件信箱>
+notify_email_from: <optional, sending address; must be an authorized sender in the current environment>
+notify_email_to: <optional, notification recipient address>
 notify_on_queue_blocked: true
 notify_on_queue_completed: true
-notify_email: <deprecated，可選；舊版阻塞通知收件信箱，請改用 notify_email_to>
+notify_email: <deprecated, optional; legacy blocked-notification recipient address, use notify_email_to instead>
 ```
 
-設定規則：
+Settings rules:
 
-1. `notify_email_from` 是寄信來源，不是密碼或 provider 設定。
-2. `notify_email_to` 是 blocked 或 completed 時要通知的收件信箱。
-3. `notify_email` 僅作為舊文件相容欄位；若 QXX 只有 `notify_email`，orchestrator 視為 `notify_email_to`，並在下次更新 QXX 時補上 `notify_email_to`。
-4. 若使用者要求 queue 通知，建立或更新 QXX 時必須詢問並填入 `notify_email_from` 與 `notify_email_to`，或確認 `documents/ddd-email-notify.md` 已有可用設定。
-5. 若使用者沒有要求寄信，兩個欄位可保留空值；blocked 時直接在目前對話回報。
-6. 若寄信工具不支援指定 From，例如只能用目前已登入帳號寄出，orchestrator 必須確認工具的授權帳號與 `notify_email_from` 一致；不一致時不得寄信，必須停止 queue 並在目前對話回報。
-7. QXX 不保存任何 email credential。寄信能力由目前 Codex / Claude / MCP / CLI 執行環境提供。
-8. 設定、驗證與寄信細節依 `ddd-email-notify` 執行。
-9. 每次寄信或寄信失敗都必須追加 ledger entry，建議使用 `notification` 或 `blocked` type。
-10. 達到 `batch_limit` 後停止但仍有 pending item 時，不算 queue completed，不寄 completed 通知。
+1. `notify_email_from` is the sending address, not a password or provider configuration.
+2. `notify_email_to` is the recipient address to notify when blocked or completed.
+3. `notify_email` is retained only for legacy document compatibility; if a QXX has only `notify_email`, the orchestrator treats it as `notify_email_to` and adds `notify_email_to` on the next QXX update.
+4. If the user requests queue notifications, `notify_email_from` and `notify_email_to` must be asked for and filled in when creating or updating the QXX, or confirmed to already be available in `documents/ddd-email-notify.md`.
+5. If the user does not request email sending, both fields may be left empty; on blocked, report directly in the current conversation.
+6. If the email tool does not support specifying a From address (e.g., it can only send from the currently logged-in account), the orchestrator must confirm that the tool's authorized account matches `notify_email_from`; if they do not match, email must not be sent — the queue must be stopped and the issue reported in the current conversation.
+7. The QXX does not store any email credentials. Email capability is provided by the current Codex / Claude / MCP / CLI execution environment.
+8. Settings, validation, and email sending details are handled by `ddd-email-notify`.
+9. Every email send or send failure must append a ledger entry; the recommended types are `notification` or `blocked`.
+10. When the queue stops after reaching `batch_limit` with items still pending, that does not count as queue completed and no completed notification is sent.
 
-## 集中需求釐清（Queue Intake Grill）
+## Centralized requirement clarification (Queue Intake Grill)
 
-`ddd-queue` 的核心目標是讓使用者在執行前一次性處理主要不確定性，避免每個 worker 子 session 都反覆打斷使用者。
+The core goal of `ddd-queue` is to let the user handle all major uncertainties in one session before execution, avoiding repeated interruptions from each worker sub-session.
 
-建立或更新 QXX 時，先執行集中式 `grill-me`：
+When creating or updating a QXX, run a centralized `grill-me` first:
 
-1. 將整批 queue item 視為同一個 intake session，而不是逐項分開問。
-2. 逐項檢查：
-   - 使用者目標與可觀察行為
-   - 驗收方式是否能由人操作確認
-   - 自動化測試是否可推導
-   - item 間依賴與 `unlock_condition`
-   - UI / API / 資料模型 / 權限 / migration / 安全風險
-   - 非目標與停止條件
-   - 哪些問題若不回答會讓 worker blocked
-3. 將問題集中整理成「Queue Intake Questions」，用 item 分組，一次問使用者。
-4. 使用者回答後，更新 QXX：
+1. Treat the entire batch of queue items as a single intake session, not as separate per-item sessions.
+2. Check each item for:
+   - User goals and observable behavior
+   - Whether acceptance criteria can be confirmed by a human action
+   - Whether automated tests can be derived
+   - Inter-item dependencies and `unlock_condition`
+   - UI / API / data model / permissions / migration / security risks
+   - Non-goals and stop conditions
+   - Which unanswered questions would cause a worker to block
+3. Consolidate all questions into "Queue Intake Questions" grouped by item, then ask the user all at once.
+4. After the user responds, update the QXX:
    - frontmatter `intake_grill_status: completed`
    - frontmatter `ready_for_execution: true`
-   - 每個可執行 item `clarification_status: clarified`
-   - 每個 item 的需求、驗收方式、停止條件、依賴、解鎖條件與設計註記
-   - `Agent Communication Ledger` 追加 `intake-question`、`answer`、`decision` entry
-5. 若仍有未回答的阻塞問題，queue 保持 `ready_for_execution: false`，對應 item 設為 `clarification_status: blocked`，不要啟動 worker。
+   - Each executable item `clarification_status: clarified`
+   - Each item's requirements, acceptance criteria, stop conditions, dependencies, unlock conditions, and design notes
+   - Append `intake-question`, `answer`, and `decision` entries to the `Agent Communication Ledger`
+5. If there are still unanswered blocking questions, keep the queue at `ready_for_execution: false`, set the corresponding items to `clarification_status: blocked`, and do not start any workers.
 
-集中 grill-me 的輸出必須寫入 QXX 的「Queue Intake Review」區塊。建議包含：
+The output of the centralized grill-me must be written to the "Queue Intake Review" section of the QXX. Recommended structure:
 
 ```md
 ## Queue Intake Review
@@ -159,73 +159,73 @@ reviewed_at: <YYYY-MM-DD HH:MM>
 
 | Item | Clarification | Key Decisions | Remaining Questions |
 |------|---------------|---------------|---------------------|
-| Q01-01 | clarified | <決策摘要> | — |
+| Q01-01 | clarified | <decision summary> | — |
 
 ### Queue Intake Questions
 
 #### Q01-01
-- Q: <問題>
-- A: <使用者回答>
+- Q: <question>
+- A: <user answer>
 
 ### Cross-item Decisions
 
-- <跨 item 的依賴、順序、共用設計決策>
+- <cross-item dependencies, ordering, and shared design decisions>
 ```
 
-worker 子 session 不應對 `clarification_status: clarified` 的 item 再次執行互動式 grill-me。若 worker 在實作期間發現 QXX 未涵蓋的新矛盾，必須 blocked，追加 `question` entry，讓 orchestrator 停止 queue 並請使用者回答。
+Worker sub-sessions must not re-run an interactive grill-me for items with `clarification_status: clarified`. If a worker discovers a new contradiction not covered by the QXX during implementation, it must block, append a `question` entry, and let the orchestrator stop the queue and ask the user.
 
 ## Context Budget / Token Policy
 
-`ddd-queue` 的預設策略是「主文件短、歷史可查、worker 精讀」。QXX 是工作狀態與索引，不是完整逐字稿。
+`ddd-queue`'s default strategy is "short main document, queryable history, worker reads precisely." The QXX is a work-state index, not a full verbatim transcript.
 
-主文件保留：
+The main document retains:
 
-- frontmatter、總覽、Queue Intake Review 摘要
-- 每個 item 的需求、驗收、停止條件、目前狀態
-- 每個 item 最多 8 行的 `handoff_summary`
-- Agent Communication Ledger 的 `Log Index`
-- 最近、未解決、或下一個 worker 必須讀的 active entries
+- frontmatter, overview, and Queue Intake Review summary
+- Each item's requirements, acceptance criteria, stop conditions, and current status
+- At most 8 lines of `handoff_summary` per item
+- The `Log Index` of the Agent Communication Ledger
+- Recent, unresolved, or active entries the next worker must read
 
-主文件不保留：
+The main document does not retain:
 
-- 完整 stdout / stderr
-- 完整測試輸出
-- 長篇 worker 回覆
-- 已完成且不再影響後續 item 的歷史細節
+- Full stdout / stderr
+- Full test output
+- Long worker replies
+- Historical details from completed items that no longer affect subsequent items
 
-歸檔規則：
+Archiving rules:
 
-1. 長內容放到 `documents/queue/logs/<QXX>-<entry-id>.md` 或 `documents/queue/logs/<QXX>-archive.md`。
-2. QXX 的 `Log Index` 保留 `Archive Ref` 路徑。
-3. 單一 ledger entry 建議不超過 1200 字；超過時保留摘要，全文歸檔。
-4. 單一 `worker_log` 建議不超過 8 行；測試輸出只列命令、結果與關鍵錯誤。
-5. 單一 `handoff_summary` 建議不超過 8 行；只寫下一個 agent 必須知道的狀態、檔案、決策、測試與風險。
-6. 當 QXX 超過約 500 行、ledger 超過 20 筆、或已完成 item 超過 3 筆 entry 時，先做 compaction：保留索引、狀態、決策、未解問題與 handoff，將舊細節歸檔。
+1. Long content goes into `documents/queue/logs/<QXX>-<entry-id>.md` or `documents/queue/logs/<QXX>-archive.md`.
+2. The `Log Index` in the QXX retains the `Archive Ref` path.
+3. A single ledger entry should not exceed 1200 words; if it does, keep a summary and archive the full text.
+4. A single `worker_log` should not exceed 8 lines; test output lists only the command, result, and key errors.
+5. A single `handoff_summary` should not exceed 8 lines; write only the state, files, decisions, tests, and risks the next agent must know.
+6. When the QXX exceeds approximately 500 lines, the ledger exceeds 20 entries, or completed items have more than 3 entries each, perform compaction first: retain the index, status, decisions, unresolved questions, and handoff, then archive older details.
 
-worker 讀取上下文時，只讀：
+When reading context, a worker reads only:
 
-- QXX frontmatter、總覽與 Queue Intake Review
-- 指定 item 區塊
-- 依賴 item 的 `handoff_summary`、`implemented_doc`、`commit`
+- QXX frontmatter, overview, and Queue Intake Review
+- The assigned item's section
+- `handoff_summary`, `implemented_doc`, and `commit` of dependent items
 - `Log Index`
-- 指定 item 與依賴 item 在 `communication_entries` 中列出的 active entries
+- Active entries listed in `communication_entries` for the assigned item and its dependencies
 
-除非遇到 blocker、矛盾或驗收需要，worker 不讀完整 archive。
+Unless a blocker, contradiction, or acceptance check requires it, workers do not read the full archive.
 
 ## Agent Communication Ledger
 
-每份 QXX 必須有全域 `Agent Communication Ledger`。這是兩個 agent 之間溝通、orchestrator 派工、使用者回答問題，以及事後追蹤決策的唯一來源。
+Every QXX must have a global `Agent Communication Ledger`. This is the single source of truth for communication between two agents, orchestrator dispatch, user answers to questions, and after-the-fact decision tracing.
 
-Ledger 原則：
+Ledger principles:
 
-1. **Append-only**：只能追加新 entry，不刪除、不覆寫既有 entry。
-2. **可讀優先**：記錄可被使用者事後閱讀的操作摘要、問題、答案、決策、測試證據與接棒資訊。
-3. **不記錄隱藏推理**：不要保存私有推理草稿；保存可驗證的判斷、假設、依據與結論。
-4. **雙向訊息都記錄**：orchestrator → worker 的派工、worker → orchestrator 的狀態、worker → user 的問題、user → worker 的回答，都要有 entry。
-5. **長輸出用摘要**：stdout / 測試輸出太長時，記摘要與關鍵錯誤；若有外部 log 檔，再記路徑。
-6. **索引先行**：後續 agent 先讀 `Log Index`，只打開與當前 item、依賴 item 或 unresolved question 相關的 entry / archive。
+1. **Append-only**: only new entries may be appended; existing entries must not be deleted or overwritten.
+2. **Readability first**: record operation summaries, questions, answers, decisions, test evidence, and handoff information that a user can read after the fact.
+3. **No hidden reasoning**: do not store private reasoning drafts; store verifiable judgments, assumptions, rationale, and conclusions.
+4. **Record both directions**: orchestrator → worker dispatch, worker → orchestrator status, worker → user questions, and user → worker answers all require entries.
+5. **Summarize long output**: when stdout / test output is too long, record a summary and key errors; if there is an external log file, record its path.
+6. **Index first**: later agents read the `Log Index` first, then open only entries / archives relevant to the current item, its dependencies, or unresolved questions.
 
-建議格式：
+Recommended format:
 
 ```md
 ## Agent Communication Ledger (Append-only)
@@ -234,24 +234,24 @@ Ledger 原則：
 
 | Entry | Time | Item | From -> To | Type | Summary | Archive Ref |
 |-------|------|------|------------|------|---------|-------------|
-| L001 | 2026-05-23 10:00 | Q01-01 | orchestrator -> codex | dispatch | 指派 Q01-01 | — |
+| L001 | 2026-05-23 10:00 | Q01-01 | orchestrator -> codex | dispatch | Dispatch Q01-01 | — |
 
 ### Active Entries
 
 #### L001 — 2026-05-23 10:00 — Q01-01 — orchestrator -> codex — dispatch
 
 **Message**
-指派 Q01-01。請以 ddd-start -> ddd-doc -> ddd-tdd 處理，完成後 commit。
+Dispatch Q01-01. Process with ddd-start -> ddd-doc -> ddd-tdd, then commit when done.
 
 **Context**
 - Queue file: `documents/queue/Q01-example.md`
 - Depends on: []
-- Unlock condition: 無
+- Unlock condition: none
 
 **Expected Response**
-- 更新 item 狀態
-- 建立 F/R/B 文檔
-- 記錄紅燈與綠燈測試
+- Update item status
+- Create F/R/B document
+- Record red and green tests
 - commit hash
 
 **Artifacts**
@@ -264,112 +264,112 @@ Ledger 原則：
 - —
 ```
 
-Entry `Type` 建議使用：
+Entry `Type` recommended values:
 
-- `dispatch`: orchestrator 指派 worker
-- `intake-question`: 集中 grill-me 階段提出的整批需求釐清問題
-- `status`: worker 回報目前進度
-- `ddd-start`: worker 完成需求類型判斷
-- `ddd-doc`: worker 建立或更新 F/R/B 文檔
-- `tdd-red`: worker 記錄紅燈測試
-- `tdd-green`: worker 記錄綠燈與驗收
-- `question`: worker 需要使用者回答
-- `answer`: 使用者或 orchestrator 回答
-- `decision`: 記錄已採納的產品或技術決策
-- `handoff`: 給下一個 agent 的接棒摘要
-- `blocked`: worker blocked 並停止
-- `notification`: orchestrator 已寄出 blocked 通知，或寄信失敗後改為對話回報
-- `completed`: worker 完成 item
-- `correction`: 修正先前 entry
-- `archive`: 將舊 entry 或長輸出移到 archive
-- `compaction`: 壓縮 QXX 主文件，保留索引、狀態與 handoff
+- `dispatch`: orchestrator assigns a worker
+- `intake-question`: batch requirement clarification questions raised during the centralized grill-me phase
+- `status`: worker reports current progress
+- `ddd-start`: worker completes requirement type determination
+- `ddd-doc`: worker creates or updates an F/R/B document
+- `tdd-red`: worker records red tests
+- `tdd-green`: worker records green tests and acceptance
+- `question`: worker needs a user answer
+- `answer`: user or orchestrator responds
+- `decision`: records an adopted product or technical decision
+- `handoff`: handoff summary for the next agent
+- `blocked`: worker is blocked and stopped
+- `notification`: orchestrator has sent a blocked notification, or reports in conversation after a send failure
+- `completed`: worker completes an item
+- `correction`: corrects a previous entry
+- `archive`: moves old entries or long output to archive
+- `compaction`: compacts the QXX main document, retaining index, status, and handoff
 
-## 建立 Queue
+## Creating a Queue
 
-當使用者要求排一批工作、延長 AI 自主工作時間、或減少逐項打斷時：
+When the user asks to queue a batch of tasks, extend AI autonomous work time, or reduce per-item interruptions:
 
-1. 讀取 `CONTEXT.md`，使用既有領域語言。
-2. 建立 `documents/queue/`，並確認下一個可用的 `QXX` 編號。
-3. 先建立 QXX 草稿，frontmatter 設為：
+1. Read `CONTEXT.md` and use the existing domain language.
+2. Create `documents/queue/` and confirm the next available `QXX` number.
+3. Create a QXX draft first, with frontmatter set to:
    - `status: draft`
    - `intake_grill_status: pending`
    - `ready_for_execution: false`
-4. 將每個需求整理成 item 草稿；每個 item 初始 `clarification_status: pending`。
-5. 執行集中式 `grill-me`，一次性釐清所有 item。
-6. 使用者回答後，完整更新 QXX 的 Queue Intake Review、item 需求、驗收、停止條件、依賴與設計註記。
-7. 若 item 之間有依賴，寫入 `depends_on` 與 `unlock_condition`，並依依賴順序排序。
-8. 若後續 item 的需求要等前一 item 完成後才知道，停止並建議改用 `ddd-plan`。
-9. 若 item 太模糊，將該 item 標成 `clarification_status: blocked`，不要放進可執行狀態。
-10. 在 queue frontmatter 填入：
-   - `status: ready`（僅當所有待執行 item 都 clarified）
+4. Organize each requirement into an item draft; each item starts with `clarification_status: pending`.
+5. Run a centralized `grill-me` to clarify all items in one session.
+6. After the user responds, fully update the QXX's Queue Intake Review, item requirements, acceptance criteria, stop conditions, dependencies, and design notes.
+7. If there are dependencies between items, write `depends_on` and `unlock_condition`, and sort items by dependency order.
+8. If the requirements for a later item cannot be known until an earlier item completes, stop and suggest using `ddd-plan` instead.
+9. If an item is too ambiguous, mark it as `clarification_status: blocked` and do not put it into an executable state.
+10. Fill in the queue frontmatter:
+   - `status: ready` (only when all items to be executed are clarified)
    - `intake_grill_status: completed`
    - `ready_for_execution: true`
-   - `batch_limit: 3`，除非使用者指定 1 到 5
-   - `notify_email_from`，若使用者要求 queue 通知
-   - `notify_email_to`，若使用者要求 queue 通知
+   - `batch_limit: 3`, unless the user specifies a value from 1 to 5
+   - `notify_email_from`, if the user requests queue notifications
+   - `notify_email_to`, if the user requests queue notifications
    - `notify_on_queue_blocked: true`
    - `notify_on_queue_completed: true`
-   - `notify_email`，僅在遷移舊 QXX 時作為相容別名，不要在新文件主動新增
+   - `notify_email`, only when migrating a legacy QXX as a compatibility alias — do not add it to new documents
 
-完成後回報 queue 文件路徑與 item 清單。若使用者同時要求執行，繼續「執行 Queue」。
+After completion, report the queue document path and item list. If the user also requests execution, continue to "Executing a Queue."
 
-## 執行 Queue
+## Executing a Queue
 
-AI 目前所在 session 是 orchestrator。orchestrator 只負責挑選 item、啟動新的子 session、檢查結果、寄信與停止；不要在 orchestrator session 直接實作功能。
+The AI's current session is the orchestrator. The orchestrator is only responsible for selecting items, starting new sub-sessions, checking results, sending email, and stopping; do not implement features directly in the orchestrator session.
 
-### 子 Session 溝通模型
+### Worker Session Communication Model
 
-使用 `codex exec` 或 `claude -p` 啟動的 worker 是非互動子 session。orchestrator 可以讀取它的 stdout / stderr 與最終結果，但不應假設能在執行中可靠地插入新問題或修正方向。
+Workers started via `codex exec` or `claude -p` are non-interactive sub-sessions. The orchestrator can read their stdout / stderr and final results, but must not assume it can reliably inject new questions or correct direction mid-execution.
 
-預設溝通方式是文件協議：
+The default communication method is the document protocol:
 
-1. orchestrator 啟動 worker 前，先追加一筆 `dispatch` entry，並將 entry id 寫入 item 的 `communication_entries`。
-2. worker 開始後，先讀取 `Log Index`、指定 item 的 active `communication_entries`、所有依賴 item 的 `handoff_summary`。
-3. worker 完成 ddd-start / ddd-doc / ddd-tdd 重要節點時，追加對應 entry。
-4. worker 需要人類決策時，將 item 設為 `status: blocked`，追加 `question` 或 `blocked` entry，並在 item 中填入 `blocker_reason`、`questions` 或 `need_user_decision`。
-5. orchestrator 偵測 blocked 後寄信或回報使用者，並停止 queue。
-6. 使用者補充答案後，orchestrator 追加 `answer` entry，再啟動新的 worker session 繼續。
+1. Before starting a worker, the orchestrator appends a `dispatch` entry and writes the entry id into the item's `communication_entries`.
+2. After starting, the worker first reads the `Log Index`, the assigned item's active `communication_entries`, and all dependent items' `handoff_summary`.
+3. When the worker reaches key milestones in ddd-start / ddd-doc / ddd-tdd, it appends the corresponding entry.
+4. When the worker needs a human decision, it sets the item to `status: blocked`, appends a `question` or `blocked` entry, and fills in `blocker_reason`, `questions`, or `need_user_decision` in the item.
+5. The orchestrator detects the blocked state, sends email or reports to the user, and stops the queue.
+6. After the user provides additional answers, the orchestrator appends an `answer` entry and starts a new worker session to continue.
 
-若真的需要即時雙向溝通，應改用互動式 tmux / remote-control 類型的 runner；但這會降低 queue 的可重現性，不作為預設流程。
+If truly real-time two-way communication is needed, use an interactive tmux / remote-control style runner instead; however, this reduces queue reproducibility and is not the default process.
 
-### 步驟 1 — 前置檢查
+### Step 1 — Pre-flight checks
 
-1. 讀取 queue 文件。
-2. 確認集中釐清已完成：`ready_for_execution: true`、`intake_grill_status: completed`，且本輪要執行的 item 都是 `clarification_status: clarified`。
-3. 若集中釐清未完成，停止執行並回到「集中需求釐清（Queue Intake Grill）」；不要啟動 worker。
-4. 確認 `git status --short` 為乾淨。若不乾淨，停止並請使用者先處理；不要自動 commit 使用者既有變更。
-5. 若 QXX 設定了 `notify_email_from`、`notify_email_to` 或舊欄位 `notify_email`，依 `ddd-email-notify` 驗證 email notification 設定：
-   - 若只有舊欄位 `notify_email`，將其視為 `notify_email_to`，並在下一次 QXX 更新補上新欄位。
-   - 若使用者要求寄信但缺少 `notify_email_from` 或 `notify_email_to`，停止並要求補齊。
-   - 確認目前環境有可用寄信工具；若沒有，執行可以繼續，但 blocked 時只能在目前對話回報。
-   - 若寄信工具不支援指定 From，確認目前授權寄件帳號與 `notify_email_from` 一致；不一致時停止並要求使用者更正寄件來源或切換授權帳號。
-6. 確認 `codex` / `claude` CLI 是否存在：
+1. Read the queue document.
+2. Confirm centralized clarification is complete: `ready_for_execution: true`, `intake_grill_status: completed`, and all items to be executed in this run are `clarification_status: clarified`.
+3. If centralized clarification is not complete, stop execution and return to "Centralized requirement clarification (Queue Intake Grill)"; do not start any workers.
+4. Confirm `git status --short` is clean. If not, stop and ask the user to handle it first; do not auto-commit the user's existing changes.
+5. If the QXX has `notify_email_from`, `notify_email_to`, or the legacy field `notify_email` set, validate the email notification settings per `ddd-email-notify`:
+   - If only the legacy field `notify_email` is present, treat it as `notify_email_to` and add the new field on the next QXX update.
+   - If the user requires email sending but `notify_email_from` or `notify_email_to` is missing, stop and require them to be filled in.
+   - Confirm a usable email tool is available in the current environment; if not, execution may continue, but blocked events can only be reported in the current conversation.
+   - If the email tool does not support specifying a From address, confirm the currently authorized sending account matches `notify_email_from`; if they do not match, stop and require the user to correct the sending address or switch the authorized account.
+6. Confirm whether `codex` / `claude` CLI is available:
    - Codex: `codex exec`
    - Claude Code: `claude -p`
-7. 決定本輪最多處理幾個 item：使用使用者指定值，否則使用 queue 的 `batch_limit`，再否則預設 3；絕不可超過 5。
+7. Determine the maximum number of items to process in this run: use the user-specified value, then the queue's `batch_limit`, then default to 3; never exceed 5.
 
-### 步驟 2 — 選擇下一個 item
+### Step 2 — Select the next item
 
-依文件順序選擇第一個 `status: pending` 且依賴已完成的 item。
+In document order, select the first `status: pending` item whose dependencies are all completed.
 
-依賴檢查：
+Dependency check:
 
-1. 讀取 item 的 `depends_on`。
-2. 確認每個依賴 item 都是 `status: completed`，且 `commit` 不為空。
-3. 檢查 `unlock_condition` 是否能從 queue、F/R/B 文檔、測試結果或當前程式碼狀態合理確認。
-4. 若依賴 item 尚未完成，先處理最靠前的未完成依賴。
-5. 若依賴 item blocked、缺少 commit，或解鎖條件不可驗證，將目前 item blocked 並停止 queue。
+1. Read the item's `depends_on`.
+2. Confirm every dependent item is `status: completed` and has a non-empty `commit`.
+3. Check whether the `unlock_condition` can be reasonably confirmed from the queue, F/R/B documents, test results, or current code state.
+4. If a dependent item is not yet complete, process the earliest incomplete dependency first.
+5. If a dependent item is blocked, has a missing commit, or the unlock condition cannot be verified, block the current item and stop the queue.
 
-若 `agent: auto`：
-- 若兩個 CLI 都可用，優先沿用 queue 中前一個 item 的交替策略。
-- 若只有一個 CLI 可用，使用可用的 CLI。
-- 若沒有 CLI 可用，將 item blocked 並停止。
+If `agent: auto`:
+- If both CLIs are available, prefer to alternate following the strategy used by the previous item in the queue.
+- If only one CLI is available, use the available one.
+- If no CLI is available, block the item and stop.
 
-### 步驟 3 — 啟動新的 worker session
+### Step 3 — Start a new worker session
 
-每個 item 都必須用新的 CLI process。不可使用 `codex resume`、`claude --continue` 或 `claude --resume`。
+Every item must use a new CLI process. Do not use `codex resume`, `claude --continue`, or `claude --resume`.
 
-Codex worker 範例：
+Codex worker example:
 
 ```bash
 codex exec \
@@ -380,7 +380,7 @@ codex exec \
   "$WORKER_PROMPT"
 ```
 
-Claude Code worker 範例：
+Claude Code worker example:
 
 ```bash
 claude -p \
@@ -389,205 +389,205 @@ claude -p \
   "$WORKER_PROMPT"
 ```
 
-若在 Claude Code 中需要明確工作目錄，先讓 shell command 的工作目錄設為專案根目錄，再執行 `claude -p`。
+If an explicit working directory is needed in Claude Code, set the shell command's working directory to the project root before running `claude -p`.
 
 ### Worker Prompt
 
-給子 session 的 prompt 必須自包含，至少包含以下內容：
+The prompt given to a sub-session must be self-contained and include at least the following:
 
 ```text
-你是 DDD queue worker。只處理一個 queue item，不要處理其他 item。
+You are a DDD queue worker. Handle only one queue item; do not handle any other items.
 
-Repo: <專案根目錄>
-Queue file: <queue 文件路徑>
+Repo: <project root>
+Queue file: <queue document path>
 Item id: <QXX-YY>
 
-必須遵守：
-1. 讀取 ddd-queue 規則；若技能不可用，依本 prompt 執行。
-2. 讀取 queue 文件，只處理指定 item。
-3. 確認 queue 已完成集中釐清：ready_for_execution: true、intake_grill_status: completed、指定 item clarification_status: clarified。若否，blocked，不要實作。
-4. 開始前確認工作樹乾淨；若不乾淨，回報 blocked，不要 commit。
-5. 檢查 depends_on；所有依賴 item 必須 completed 且有 commit，unlock_condition 必須可驗證。
-6. 閱讀 Queue Intake Review、Log Index、指定 item 的 active communication_entries、依賴 item 的 handoff_summary、implemented_doc、commit 摘要與測試記錄，建立本 item 所需上下文；除非 blocked 或上下文矛盾，不讀完整 archive。
-7. 將指定 item 標成 in_progress，填入 worker_session，並追加 status entry。
-8. 以指定 item 作為新工作執行 ddd-start：判斷是 FXX / BXX / RXX，並載入 CONTEXT.md；若 ddd-start 會要求 grill-me，先對照 Queue Intake Review，已回答則繼續，未回答才 blocked；追加 ddd-start entry。
-9. 執行 ddd-doc：建立或更新對應 FXX / BXX / RXX 文檔，內容必須包含需求、驗收標準、測試場景、停止條件與假設；追加 ddd-doc entry。
-10. 若 auto_approve: true 且 ddd-doc 產出的文檔清楚、低風險、可測試，將該文檔視為本 item 的已核准文檔；否則 blocked，追加 question / blocked entry，等待使用者審核。
-11. 執行 ddd-tdd：先寫失敗測試並確認紅燈，追加 tdd-red entry；再實作最小綠燈，最後驗收並更新文檔實作記錄，追加 tdd-green entry。因本次 ddd-tdd 是由 ddd-queue worker 呼叫，必須抑制 ddd-tdd 單項完成通知，不得寄信。
-12. 不得跳過紅燈測試；若無法建立合理失敗測試，blocked 並說明原因。
-13. 若需求模糊、高風險、測試無法穩定通過、需要使用者決策，將 item 標成 blocked，填寫 blocker_reason、questions 或 need_user_decision，追加 question / blocked entry，停止。
-14. 完成時更新 queue item：status: completed、implemented_doc、commit、worker_log、handoff_summary、communication_entries，並追加 handoff / completed entry。
-15. git commit 必須只包含本 item 相關檔案；使用明確 git add 檔案清單，不要使用 git add .
-16. commit 後確認工作樹乾淨。
-17. 若 QXX 超過 context budget，先做 compaction，將長 log 歸檔並追加 compaction / archive entry。
-18. 最終回覆只回報 item 狀態、commit hash、執行測試命令、ledger entries、ddd-tdd completed notification suppressed by queue 與任何限制。不要開始下一個 item。
+You must follow these rules:
+1. Read the ddd-queue rules; if the skill is unavailable, follow this prompt instead.
+2. Read the queue document and handle only the assigned item.
+3. Confirm the queue has completed centralized clarification: ready_for_execution: true, intake_grill_status: completed, assigned item clarification_status: clarified. If not, block — do not implement.
+4. Before starting, confirm the working tree is clean; if not, report blocked — do not commit.
+5. Check depends_on; all dependent items must be completed with a commit, and unlock_condition must be verifiable.
+6. Read the Queue Intake Review, Log Index, the assigned item's active communication_entries, dependent items' handoff_summary, implemented_doc, commit summary, and test records to build the context needed for this item; do not read the full archive unless blocked, contradictions arise, or acceptance requires it.
+7. Mark the assigned item as in_progress, fill in worker_session, and append a status entry.
+8. Execute ddd-start for the assigned item as a new task: determine whether it is FXX / BXX / RXX and load CONTEXT.md; if ddd-start would request a grill-me, cross-check against the Queue Intake Review — if already answered, continue; if not, block. Append a ddd-start entry.
+9. Execute ddd-doc: create or update the corresponding FXX / BXX / RXX document; the document must include requirements, acceptance criteria, test scenarios, stop conditions, and assumptions. Append a ddd-doc entry.
+10. If auto_approve: true and the document produced by ddd-doc is clear, low-risk, and testable, treat that document as the approved document for this item; otherwise block, append a question / blocked entry, and wait for user review.
+11. Execute ddd-tdd: first write failing tests and confirm red, append a tdd-red entry; then implement the minimal green, then run acceptance and update the document implementation record, append a tdd-green entry. Because this ddd-tdd is executed inside a ddd-queue worker, suppress the ddd-tdd per-item completion notification — do not send email.
+12. Do not skip red tests; if a reasonable failing test cannot be created, block and explain why.
+13. If requirements are ambiguous, high-risk, tests cannot pass stably, or a user decision is needed, mark the item as blocked, fill in blocker_reason, questions, or need_user_decision, append a question / blocked entry, and stop.
+14. On completion, update the queue item: status: completed, implemented_doc, commit, worker_log, handoff_summary, communication_entries, and append a handoff / completed entry.
+15. The git commit must include only files related to this item; use an explicit git add file list — do not use git add .
+16. After committing, confirm the working tree is clean.
+17. If the QXX exceeds the context budget, perform compaction first, archive long logs, and append a compaction / archive entry.
+18. The final reply reports only the item status, commit hash, test commands run, ledger entries, ddd-tdd completed notification suppressed by queue, and any limitations. Do not start the next item.
 ```
 
-## Worker DDD 流程
+## Worker DDD flow
 
-worker 子 session 必須按以下順序執行，缺一不可：
+The worker sub-session must execute the following steps in order without exception:
 
-1. **ddd-start**：將 queue item 當成使用者的新工作，判斷類型、載入 `CONTEXT.md`、檢查是否需要 grill / zoom-out / diagnose 等前置流程。若需求不適合自動批准，blocked。
-2. **ddd-doc**：建立或更新一份 FXX / BXX / RXX 文檔。queue item 不是實作文檔，只是派工來源；真正的需求權威仍是 F/R/B 文檔。
-3. **ddd-tdd**：以剛建立的 F/R/B 文檔作為唯一需求來源，執行紅燈、綠燈、驗收、文檔更新；因為這是 queue worker 內部執行，不寄 ddd-tdd 單項完成通知。
-4. **queue closeout**：更新 queue item 狀態、關聯文檔、測試命令、commit hash 與 worker log。
-5. **communication closeout**：追加 `handoff` / `completed` entry，更新 item 的 `handoff_summary` 與 `communication_entries`。
+1. **ddd-start**: treat the queue item as a new task from the user, determine the type, load `CONTEXT.md`, and check whether prerequisite flows such as grill / zoom-out / diagnose are needed. If the requirements are not suitable for auto-approval, block.
+2. **ddd-doc**: create or update one FXX / BXX / RXX document. The queue item is a dispatch source, not an implementation document; the true requirements authority is still the F/R/B document.
+3. **ddd-tdd**: use the newly created F/R/B document as the sole requirements source; run red, green, acceptance, and documentation updates. Because this is executed inside a queue worker, do not send the ddd-tdd per-item completion notification.
+4. **queue closeout**: update the queue item's status, associated documents, test commands, commit hash, and worker log.
+5. **communication closeout**: append `handoff` / `completed` entries and update the item's `handoff_summary` and `communication_entries`.
 
-若 worker 發現自己已經開始修改生產代碼但尚未建立 F/R/B 文檔，必須停止、回復本 item 未完成變更，先回到 ddd-doc。
+If a worker finds that it has already started modifying production code before an F/R/B document exists, it must stop, revert the incomplete changes for this item, and return to ddd-doc first.
 
-## Worker 完成規則
+## Worker completion rules
 
-worker 完成 item 前必須：
+Before a worker completes an item it must have:
 
-1. 已在 worker log 中記錄 ddd-start 判斷結果。
-2. 建立或更新一份 F/R/B 文檔，並將路徑寫入 `implemented_doc`。
-3. 依該文檔新增或更新測試。
-4. 觀察並記錄至少一個正確原因的紅燈測試。
-5. 執行相關測試，必要時執行更廣的回歸測試。
-6. 更新 F/R/B 文檔的實作記錄。
-7. 更新 queue item 狀態、總覽表與 worker log。
-8. 更新 `handoff_summary`，讓下一個 agent 不必重新讀完整 stdout。
-9. 追加必要的 ledger entry：至少包含 dispatch、ddd-start、ddd-doc、tdd-red、tdd-green、handoff 或 blocked；長內容只保留摘要並寫入 archive ref。
-10. 建立 git commit。
-11. 確認 `git status --short` 乾淨。
-12. 若觸發 context budget 門檻，執行 compaction，確保下一個 worker 不需要讀完整歷史。
+1. Recorded the ddd-start determination result in the worker log.
+2. Created or updated one F/R/B document and written the path into `implemented_doc`.
+3. Added or updated tests based on that document.
+4. Observed and recorded at least one red test that fails for the correct reason.
+5. Run the relevant tests, and broader regression tests if necessary.
+6. Updated the F/R/B document's implementation record.
+7. Updated the queue item status, overview table, and worker log.
+8. Updated `handoff_summary` so the next agent does not need to re-read the full stdout.
+9. Appended the necessary ledger entries: at minimum dispatch, ddd-start, ddd-doc, tdd-red, tdd-green, and handoff or blocked; long content retains only a summary with an archive ref.
+10. Created a git commit.
+11. Confirmed `git status --short` is clean.
+12. If the context budget threshold is triggered, performed compaction to ensure the next worker does not need to read the full history.
 
-建議 commit message：
+Recommended commit message format:
 
 ```text
-feat: complete Q01-01 <功能名稱>
-fix: complete Q01-02 <修正名稱>
-refactor: complete Q01-03 <重構名稱>
+feat: complete Q01-01 <feature name>
+fix: complete Q01-02 <fix name>
+refactor: complete Q01-03 <refactor name>
 ```
 
-## Blocker 規則
+## Blocker rules
 
-以下情況必須 blocked：
+The following situations must be blocked:
 
-- 需求缺少可驗收行為。
-- queue 未完成集中 grill-me，或 item `clarification_status` 不是 `clarified`。
-- item 的依賴未宣告、依賴 item blocked、依賴 commit 缺失，或 `unlock_condition` 無法驗證。
-- 需要修改資料模型、權限、付款、安全、登入、隱私、資料刪除或 migration，但 queue 未明確授權。
-- 連續兩次測試失敗後仍無法辨識根因。
-- 需要使用者選擇產品行為或 trade-off。
-- 工作樹不乾淨，可能夾帶非本 item 變更。
-- 找不到指定的頁面、模組、API 或測試入口，且無法從 repo 合理推導。
+- Requirements lack verifiable acceptance behavior.
+- The queue has not completed centralized grill-me, or the item's `clarification_status` is not `clarified`.
+- The item's dependencies are undeclared, a dependent item is blocked, a dependency commit is missing, or `unlock_condition` cannot be verified.
+- Changes to data models, permissions, payments, security, authentication, privacy, data deletion, or migrations are required but not explicitly authorized in the queue.
+- The root cause cannot be identified after two consecutive test failures.
+- The user must choose a product behavior or trade-off.
+- The working tree is not clean, which may include changes not belonging to this item.
+- The specified page, module, API, or test entry point cannot be found and cannot be reasonably inferred from the repo.
 
-blocked 時更新 item：
+When blocked, update the item:
 
 ```md
 status: blocked
-blocker_reason: <具體原因>
+blocker_reason: <specific reason>
 questions:
-- <需要使用者回答的問題>
+- <questions the user needs to answer>
 need_user_decision:
-- A: <選項>
-- B: <選項>
-worker_log: <已完成哪些步驟、卡在哪一步、是否有未提交變更>
-communication_entries: [<相關 LXXX>]
+- A: <option>
+- B: <option>
+worker_log: <which steps were completed, where it got stuck, whether there are uncommitted changes>
+communication_entries: [<related LXXX>]
 ```
 
-不要 commit 不完整的生產代碼。若已產生部分變更且無法安全完成，留下清楚記錄並停止；orchestrator 不得繼續下一個 item。
+Do not commit incomplete production code. If partial changes have been produced and cannot be safely completed, leave a clear record and stop; the orchestrator must not continue to the next item.
 
-## 通知使用者
+## Notifying the user
 
-orchestrator 偵測到 blocked 後：
+After the orchestrator detects a blocked state:
 
-1. 停止 queue。
-2. 依 `ddd-email-notify` 讀取 queue frontmatter 的 `notify_email_from` 與 `notify_email_to`。
-3. 若舊文件只有 `notify_email`，將其視為 `notify_email_to`，並在 QXX 更新時補上 `notify_email_to`。
-4. 若 `notify_on_queue_blocked: false`，不寄信，直接在目前對話回報 blocked。
-5. 若沒有 `notify_email_to`、沒有可用寄信工具、或寄信來源無法驗證，直接在目前對話回報 blocked。
-6. 若寄信工具不支援指定 From，必須確認目前授權帳號與 `notify_email_from` 一致；若不一致，不寄信並在目前對話回報。
-7. 寄信成功或失敗都追加 `notification` ledger entry，記錄 From、To、subject、delivery status 與是否 fallback 到對話回報。
-8. 寄信失敗也不得繼續下一個 item。
+1. Stop the queue.
+2. Read `notify_email_from` and `notify_email_to` from the queue frontmatter per `ddd-email-notify`.
+3. If a legacy document has only `notify_email`, treat it as `notify_email_to` and add `notify_email_to` on the next QXX update.
+4. If `notify_on_queue_blocked: false`, do not send email — report the blocked state directly in the current conversation.
+5. If there is no `notify_email_to`, no usable email tool, or the sending address cannot be verified, report the blocked state directly in the current conversation.
+6. If the email tool does not support specifying a From address, confirm the currently authorized account matches `notify_email_from`; if they do not match, do not send email and report in the current conversation instead.
+7. Whether email sending succeeds or fails, append a `notification` ledger entry recording From, To, subject, delivery status, and whether the fallback to conversation reporting was used.
+8. A send failure must not allow continuing to the next item.
 
-寄信格式：
+Email format:
 
 ```text
 From: <notify_email_from>
 To: <notify_email_to>
-Subject: [DDD Queue Blocked] <item id> <item title> 需要確認
+Subject: [DDD Queue Blocked] <item id> <item title> — confirmation needed
 
-已完成：
+Completed:
 - <item id> <title>, commit: <hash>
 
-目前阻塞：
+Currently blocked:
 - <item id> <title>
 
-阻塞原因：
+Blocker reason:
 <blocker_reason>
 
-需要你確認：
+Needs your confirmation:
 - A: ...
 - B: ...
 
-Queue 已暫停，尚未執行後續 item。
+The queue has been paused; subsequent items have not been executed.
 ```
 
-## Queue 完成通知
+## Queue completion notification
 
-orchestrator 每完成一個 item 後，檢查 queue 是否全部完成。只有同時符合以下條件才算 queue completed：
+After the orchestrator completes each item, it checks whether the entire queue is done. The queue is considered completed only when all of the following conditions are met simultaneously:
 
-1. 所有非 skipped item 都是 `status: completed`。
-2. 沒有 `pending`、`in_progress` 或 `blocked` item。
-3. 不是因達到 `batch_limit` 而暫停。
-4. 每個 completed item 都有 `commit` 與 `implemented_doc`。
+1. All non-skipped items are `status: completed`.
+2. There are no `pending`, `in_progress`, or `blocked` items.
+3. The queue was not paused because it reached `batch_limit`.
+4. Every completed item has a `commit` and an `implemented_doc`.
 
-queue completed 後：
+After queue completion:
 
-1. 停止 queue。
-2. 依 `ddd-email-notify` 讀取 `notify_email_from`、`notify_email_to` 與 `notify_on_queue_completed`。
-3. 若 `notify_on_queue_completed: true` 且寄信設定可用，寄出 `[DDD Queue Completed]` 通知。
-4. 寄信成功或失敗都追加 `notification` ledger entry，記錄 From、To、subject、delivery status 與是否 fallback 到對話回報。
-5. 若無可用寄信設定或工具，直接在目前對話回報 queue completed，並說明未寄信原因。
+1. Stop the queue.
+2. Read `notify_email_from`, `notify_email_to`, and `notify_on_queue_completed` per `ddd-email-notify`.
+3. If `notify_on_queue_completed: true` and email settings are available, send a `[DDD Queue Completed]` notification.
+4. Whether email sending succeeds or fails, append a `notification` ledger entry recording From, To, subject, delivery status, and whether the fallback to conversation reporting was used.
+5. If no usable email settings or tool is available, report queue completion directly in the current conversation and explain why email was not sent.
 
-寄信格式：
+Email format:
 
 ```text
 From: <notify_email_from>
 To: <notify_email_to>
 Subject: [DDD Queue Completed] <QXX title>
 
-Queue 已全部完成：
+Queue fully completed:
 - <item id> <title>, commit: <hash>
 
-測試：
-- <主要命令與結果>
+Tests:
+- <main commands and results>
 
-Queue 文件：
+Queue document:
 <queue file path>
 ```
 
-## 最終回報
+## Final report
 
-orchestrator 停止時回報：
+When the orchestrator stops, it reports:
 
 ```markdown
-DDD queue 執行結束。
+DDD queue execution finished.
 
-已完成：
+Completed:
 - Q01-01 <title> — <commit>
 - Q01-02 <title> — <commit>
 
-已阻塞：
-- Q01-03 <title> — <原因>
+Blocked:
+- Q01-03 <title> — <reason>
 
-未執行：
+Not executed:
 - Q01-04 <title>
 
-測試：
-- <各 item 執行過的主要命令>
+Tests:
+- <main commands run per item>
 
-溝通紀錄：
+Communication records:
 - Agent Communication Ledger: L001-L0XX
 
-通知：
+Notifications:
 - ddd-email-notify: sent / skipped-not-configured / failed / not-completed
-- From: <notify_email_from 或 —>
-- To: <notify_email_to 或 —>
-- Reason: <若未寄信，說明原因>
+- From: <notify_email_from or —>
+- To: <notify_email_to or —>
+- Reason: <if email was not sent, explain why>
 
-Queue 文件：
+Queue document:
 - documents/queue/Q01-xxx.md
 ```

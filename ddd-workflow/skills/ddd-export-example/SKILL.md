@@ -1,138 +1,138 @@
 ---
 name: ddd-export-example
-description: 從目前專案蒸餾出某個功能的「最小可跑範例」，輸出到 reference-examples/export/ 下，供其他專案以 ddd-import-example 參考實作。使用者指出功能入口，AI 追蹤依賴圖並先確認邊界，再蒸餾成獨立可跑的最小程式（含自帶 scaffold、smoke test 與 MANIFEST），且必須實際把 smoke test 跑綠燈才算完成。當使用者想把本專案某個已成功的功能導出成範例、好在別的專案重做類似功能時使用。
+description: Distills a feature from the current project into a "minimum runnable example" and outputs it to reference-examples/export/, so other projects can reference the implementation via ddd-import-example. The user points to the feature entry point; AI traces the dependency graph, confirms boundaries first, then distills into a standalone runnable minimum (with its own scaffold, smoke test, and MANIFEST). The smoke test must actually pass green before the export is considered complete. Use this when the user wants to export a successfully working feature from the current project as an example for reproducing similar functionality in another project.
 ---
 
 # DDD Export Example
 
-把目前專案裡某個**已經成功運作的功能**，蒸餾成一份**獨立可跑的最小範例**，輸出到 `reference-examples/export/<feature>/`。
+Distills a **successfully working feature** from the current project into a **standalone minimum runnable example**, outputting it to `reference-examples/export/<feature>/`.
 
-## 為什麼要這個技能
+## Why this skill exists
 
-當專案變複雜，讓 AI 直接在裡面加功能容易出錯。但如果有一份**已驗證能跑的最小範例**當參考，AI 在別的專案重做類似功能的成功率會大幅提升。這個技能負責「把成功的功能抽離成乾淨、可跑、可攜帶的範例」；對應的匯入端是 `ddd-import-example`。
+As projects grow complex, having AI add features directly inside them becomes error-prone. But with a **verified-runnable minimum example** as a reference, AI's success rate for reproducing similar features in other projects improves dramatically. This skill is responsible for "extracting a successful feature into a clean, runnable, portable example"; the corresponding import side is `ddd-import-example`.
 
-## 產出定位
+## Output definition
 
-| 性質 | 說明 |
+| Property | Description |
 |------|------|
-| **獨立可跑** | 去掉專案雜訊，自帶最小 scaffold，能單獨執行 |
-| **已驗證綠燈** | 內含 smoke test，**蒸餾後必須實際跑綠燈才算完成** |
-| **可攜帶** | 整個資料夾可被使用者手動複製到別專案的 `reference-examples/import/` |
-| **同棧為主、跨棧儘力** | 程式碼保留原始語言；MANIFEST 另含語言無關的「核心概念」段，讓不同棧也能參考 |
+| **Standalone runnable** | Strips project noise, includes minimum scaffold, can be executed independently |
+| **Green-light verified** | Contains a smoke test — **must actually pass green after distillation to be considered complete** |
+| **Portable** | The entire folder can be manually copied by the user to another project's `reference-examples/import/` |
+| **Same-stack primary, cross-stack best-effort** | Code retains original language; MANIFEST also includes a language-agnostic "core concepts" section so different stacks can reference it |
 
 ---
 
-## 步驟一 — 確認功能入口
+## Step 1 — Confirm feature entry point
 
-詢問使用者（若指令未說明）：
+Ask the user (if not specified in the command):
 
-1. **要導出哪個功能？**（一句話描述，例如「JWT 登入」、「檔案上傳到 S3」）
-2. **這個功能的入口在哪？**（檔案 / 路由 / 類別 / 函式，至少一個起點）
+1. **Which feature to export?** (one-sentence description, e.g. "JWT login", "file upload to S3")
+2. **Where is the entry point for this feature?** (file / route / class / function — at least one starting point)
 
-不要讓使用者手動列出全部檔案——使用者只需給入口，依賴由 AI 追蹤。
+Do not ask the user to manually list all files — the user only needs to provide the entry point; dependencies are traced by AI.
 
 ---
 
-## 步驟二 — 追蹤依賴並確認邊界（關鍵，先確認再蒸餾）
+## Step 2 — Trace dependencies and confirm boundaries (critical — confirm before distilling)
 
-1. 從入口出發，追蹤 import / require / 呼叫關係，建立**依賴圖**。
-2. 區分三類：
-   - **核心**：實作該功能的本質邏輯，必須納入。
-   - **邊界依賴**：框架、資料庫、外部服務等 → 通常**換成最小 stub / fake**，而非整包搬進來。
-   - **無關雜訊**：與此功能無關的專案設定、其他功能 → **排除**。
-3. 把結果整理成清單給使用者確認：
+1. Start from the entry point, trace import / require / call relationships, and build a **dependency graph**.
+2. Classify into three categories:
+   - **Core**: the essential logic that implements this feature — must be included.
+   - **Boundary dependencies**: frameworks, databases, external services, etc. → usually **replaced with minimum stubs / fakes**, not pulled in wholesale.
+   - **Irrelevant noise**: project configuration, other features unrelated to this one → **excluded**.
+3. Compile the results into a list for the user to confirm:
 
 ```
-打算納入的最小集合（功能：<feature>）：
+Planned minimum set (feature: <feature>):
 
-核心（原樣蒸餾）：
+Core (distilled as-is):
   - path/to/core-a.ts
   - path/to/core-b.ts
 
-邊界依賴（將換成 stub / fake）：
-  - 資料庫存取 → in-memory fake
-  - 外部 API → 假回應
+Boundary dependencies (will be replaced with stub / fake):
+  - Database access → in-memory fake
+  - External API → mock response
 
-排除（與功能無關）：
-  - 其他模組、專案設定…
+Excluded (unrelated to this feature):
+  - Other modules, project configuration…
 
-不確定、需要你裁示：
-  - <列出邊界模糊的項目>
+Uncertain, needs your decision:
+  - <list boundary-ambiguous items>
 ```
 
-4. **等使用者確認 / 修正邊界後，才進入蒸餾。** 邊界錯了整份蒸餾就白做。
+4. **Wait for the user to confirm / revise the boundaries before proceeding to distillation.** Wrong boundaries make the entire distillation worthless.
 
 ---
 
-## 步驟三 — 確認輸出位置與編號
+## Step 3 — Confirm output location and naming
 
-1. 確保資料夾存在：`mkdir -p reference-examples/export`
-2. 以功能取一個 kebab-case 名稱作為 bundle 資料夾，例如 `reference-examples/export/jwt-login/`
-3. 若同名 bundle 已存在，詢問使用者是要更新還是換名，**不直接覆蓋**。
+1. Ensure the folder exists: `mkdir -p reference-examples/export`
+2. Choose a kebab-case name from the feature as the bundle folder, e.g. `reference-examples/export/jwt-login/`
+3. If a bundle with the same name already exists, ask the user whether to update or rename — **do not overwrite directly**.
 
 ---
 
-## 步驟四 — 蒸餾成最小可跑範例
+## Step 4 — Distill into minimum runnable example
 
-在 `reference-examples/export/<feature>/` 下產生：
+Generate the following under `reference-examples/export/<feature>/`:
 
 ```
 reference-examples/export/<feature>/
-├── MANIFEST.md          ← 範例說明書（見步驟五）
-├── src/                 ← 蒸餾後的核心程式碼（原始語言）
-├── <scaffold 檔>        ← 最小依賴清單與執行設定（見下）
-└── <smoke test 檔>      ← 證明能跑的測試
+├── MANIFEST.md          ← Example specification (see Step 5)
+├── src/                 ← Distilled core code (original language)
+├── <scaffold file>      ← Minimum dependency list and run configuration (see below)
+└── <smoke test file>    ← Test proving it runs
 ```
 
-**蒸餾原則：**
-- 只保留功能本質。把與功能無關的參數、設定、抽象層拿掉。
-- 外部依賴（DB、網路、檔案系統、第三方 SDK）換成**最小 stub / fake**，讓範例不需要真實環境就能跑。
-- 保留原始命名與結構慣例，讓參考者看得懂「原本長怎樣」。
-- **scaffold 要最小**：依語言給出最小依賴清單與一行執行指令（例如 Node 的 `package.json` + `npm test`；Python 的 `requirements.txt` + `pytest`）。
-- **smoke test 是綠燈的證明**：至少覆蓋這個功能最關鍵的一條 happy path，能用一行指令跑起來。
+**Distillation principles:**
+- Keep only the essential logic of the feature. Remove parameters, configuration, and abstraction layers unrelated to the feature.
+- Replace external dependencies (DB, network, filesystem, third-party SDKs) with **minimum stubs / fakes** so the example runs without a real environment.
+- Preserve original naming and structural conventions so the reader can understand "what it originally looked like".
+- **Scaffold must be minimal**: provide the minimum dependency list and a single-line run command appropriate for the language (e.g. Node's `package.json` + `npm test`; Python's `requirements.txt` + `pytest`).
+- **Smoke test is proof of the green light**: must cover at least the single most critical happy path of this feature, runnable with a one-line command.
 
 ---
 
-## 步驟五 — 撰寫 MANIFEST.md
+## Step 5 — Write MANIFEST.md
 
-讀取本技能資料夾的 `templates/MANIFEST-template.md`，依實際內容填寫後寫入 bundle。MANIFEST 必須包含：
+Read the `templates/MANIFEST-template.md` from this skill's folder, fill it in with the actual content, and write it into the bundle. The MANIFEST must include:
 
-- **功能摘要**：這個範例示範什麼。
-- **入口**：從哪個檔案 / 函式開始讀。
-- **檔案地圖**：每個檔案的職責一行。
-- **依賴與執行**：需要什麼、用哪一行指令跑、smoke test 怎麼執行。
-- **核心概念（語言無關）**：用文字描述這個功能的本質流程與關鍵決策，**不綁語言**——這是跨棧匯入時的主要參考。
-- **改寫指引**：匯入到別專案時，哪些是骨架該保留、哪些是要替換成目標專案語境的點。
-- **smoke test 摘要**：這條測試驗證了什麼（匯入端會把它翻成目標專案的驗收條件）。
-
----
-
-## 步驟六 — 跑綠燈驗證（必做，跑不過不准導出）
-
-1. 在 bundle 目錄安裝最小依賴並執行 smoke test。
-2. **若紅燈**：修正範例（多半是漏抓依賴或 stub 不足），重跑，直到綠燈。
-3. **若無法在當前環境跑起來**（例如缺執行環境），如實告訴使用者「尚未驗證綠燈」，並說明缺什麼——**不要謊報完成**。
+- **Feature summary**: what this example demonstrates.
+- **Entry point**: which file / function to start reading from.
+- **File map**: one line describing the responsibility of each file.
+- **Dependencies and execution**: what is required, which one-line command to run it, how to run the smoke test.
+- **Core concepts (language-agnostic)**: describe in plain text the essential flow and key decisions of this feature, **without binding to any language** — this is the primary reference for cross-stack imports.
+- **Adaptation guide**: when importing into another project, which parts are skeleton to keep and which are points to replace with the target project's context.
+- **Smoke test summary**: what this test verifies (the import side will translate it into the target project's acceptance criteria).
 
 ---
 
-## 步驟七 — 完成回報
+## Step 6 — Run green-light verification (required — export is not allowed if it fails)
+
+1. Install minimum dependencies in the bundle directory and execute the smoke test.
+2. **If red light**: fix the example (usually a missing dependency or insufficient stub), re-run, until green light.
+3. **If unable to run in the current environment** (e.g. missing runtime), honestly tell the user "green light not yet verified" and explain what is missing — **do not falsely report completion**.
+
+---
+
+## Step 7 — Completion report
 
 ```
-功能範例導出完成：
+Feature example export complete:
 
   ✓ reference-examples/export/<feature>/
 
-bundle 內容：
+Bundle contents:
   - MANIFEST.md
-  - src/…（蒸餾後核心）
+  - src/… (distilled core)
   - <scaffold>
   - <smoke test>
 
-綠燈驗證：
-  ✓ <執行的指令> — 通過
-  （或：✗ 尚未驗證，原因：…）
+Green-light verification:
+  ✓ <command executed> — passed
+  (or: ✗ not yet verified, reason: …)
 
-下一步：
-  把 reference-examples/export/<feature>/ 整個資料夾複製到目標專案的
-  reference-examples/import/ 下，再到目標專案執行 /ddd-import-example。
+Next steps:
+  Copy the entire reference-examples/export/<feature>/ folder to the target project's
+  reference-examples/import/ directory, then run /ddd-import-example in the target project.
 ```

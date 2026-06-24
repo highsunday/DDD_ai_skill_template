@@ -1,100 +1,102 @@
-# DDD × Pocock 強化工作流程
+# DDD × Pocock Enhanced Workflow
 
-不要將整個 `ddd-workflow/` 資料夾加入 AI 上下文。請只載入被觸發的 `skills/*/SKILL.md`，並讓技能在需要時再讀取同資料夾內的模板或參考文件，避免一次消耗整包 token。
+Do not add the entire `ddd-workflow/` folder to the AI context. Load only the triggered `skills/*/SKILL.md`, and let the skill read templates or reference documents within the same folder as needed, to avoid consuming the entire token budget at once.
 
-## 快速開始
+## Quick Start
 
-1. 將 `ddd-workflow/skills/` 安裝或註冊為可觸發技能
-2. 需要初始化專案時，只觸發 `/ddd-create-folder`
-3. `/ddd-create-folder` 會從 `skills/ddd-create-folder/templates/` 複製 F00 / R00 / B00 / P00 / Q00 / G00 模板
-4. 填寫專案根目錄的 `CONTEXT.md`，定義你的專案領域術語
-5. 執行 `/ddd-start` 開始任何新工作；若要讓 AI 連續處理多個已排序工作，使用 `/ddd-queue`
+1. Install or register `ddd-workflow/skills/` as triggerable skills
+2. When initializing a project, trigger only `/ddd-create-folder`
+3. `/ddd-create-folder` copies the F00 / R00 / B00 / P00 / Q00 / G00 templates from `skills/ddd-create-folder/templates/`
+4. Fill in `CONTEXT.md` at the project root to define your project's domain terminology
+5. Run `/ddd-start` to begin any new work; use `/ddd-queue` if you want the AI to process multiple ordered tasks continuously
 
-## 開發循環
-
-```
-人類提出需求
-      ↓
-/ddd-start   偵測類型 → 路由到正確入口
-      ↓
-/ddd-doc     草擬 FXX / RXX / BXX 文檔
-      ↓
-人類審查並核准文檔
-      ↓
-/ddd-tdd     紅燈 → 綠燈 → 驗收 → 更新文檔
-```
-
-長時間工作佇列不一定走 PXX：
+## Development Loop
 
 ```
-人類列出 2-5 個已排序工作
+User submits a requirement
       ↓
-/ddd-queue   建立 QXX queue 文件
+/ddd-start   Detects type → routes to the correct entry point
       ↓
-集中 /grill-me 釐清所有 item → 更新 Queue Intake Review
+/ddd-doc     Drafts FXX / RXX / BXX documents
       ↓
-orchestrator 每個 item 開新 Codex / Claude Code session
+User reviews and approves the document
       ↓
-worker 執行 ddd-start → ddd-doc → ddd-tdd → git commit → 更新 queue
-      ↓
-Agent Communication Ledger 記錄派工 / 問題 / 回答 / 測試 / 接棒
-長 stdout / 舊歷史歸檔到 documents/queue/logs/
-      ↓
-完成 batch limit 或 blocked 後停止
+/ddd-tdd     Red → Green → Acceptance → Update document
 ```
 
-DDD 通知設定放在 `documents/ddd-email-notify.md`，QXX 也可用 frontmatter 覆蓋。信箱欄位是 `notify_email_from`（寄信來源，必須是目前環境已授權可寄出的信箱）與 `notify_email_to`（寄去哪裡）。`/ddd-tdd` 單獨完成會寄 completed 通知；`/ddd-queue` blocked 與整批全部完成會寄通知；由 queue worker 呼叫的 `/ddd-tdd` 不寄單項完成信。QXX 不保存 email 密碼、token 或 SMTP key；寄信工具不可用時，orchestrator 會改在目前對話回報。
+Long-running work queues do not necessarily go through PXX:
 
-## DDD 技能（主流程）
+```
+User lists 2–5 ordered tasks
+      ↓
+/ddd-queue   Creates a QXX queue document
+      ↓
+Centralized /grill-me clarifies all items → updates Queue Intake Review
+      ↓
+Orchestrator opens a new Codex / Claude Code session for each item
+      ↓
+Worker runs ddd-start → ddd-doc → ddd-tdd → git commit → updates queue
+      ↓
+Agent Communication Ledger records dispatch / questions / answers / tests / handoffs
+Long stdout / old history archived to documents/queue/logs/
+      ↓
+Stops after completing the batch limit or when blocked
+```
 
-| 技能 | 用途 |
+DDD notification settings are stored in `documents/ddd-email-notify.md`; QXX can also override them via frontmatter. The email fields are `notify_email_from` (the sending address, which must be an address authorized to send in the current environment) and `notify_email_to` (the destination address). `/ddd-tdd` completing on its own sends a completed notification; `/ddd-queue` sends notifications when blocked and when the entire batch finishes; `/ddd-tdd` called by a queue worker does not send a per-item completion email. QXX does not store email passwords, tokens, or SMTP keys; when the email tool is unavailable, the orchestrator falls back to reporting in the current conversation.
+
+## DDD Skills (Main Workflow)
+
+| Skill | Purpose |
 |---|---|
-| `/ddd-create-folder` | **新專案初始化**：建立 documents/ 資料夾與 F00 / R00 / B00 / P00 / Q00 / G00 模板 |
-| `/ddd-start` | 任何新工作的入口，偵測類型並路由 |
-| `/ddd-doc` | 建立與維護 FXX / RXX / BXX 文檔及模組文檔 |
-| `/ddd-tdd` | 文檔驅動的 TDD 實作，整合結構化除錯 |
-| `/ddd-plan` | 大型改動的 PXX 多階段規劃；適用於後續範疇需等前階段完成才知道 |
-| `/ddd-queue` | 多個已排序工作連續執行；先集中 grill-me 釐清所有 item，再逐項新 session 執行並各自 commit，QXX 內保留精簡 ledger 與 archive 索引 |
-| `/ddd-email-notify` | 顯示目前寄信 info，設定與寄出 DDD 操作通知；管理 `notify_email_from` / `notify_email_to`，說明 tdd completed、queue blocked、queue completed 的寄信時機 |
-| `/ddd-export-example` | 把本專案某個已成功功能蒸餾成獨立可跑、已驗證綠燈的最小範例，輸出到 `reference-examples/export/`，供別專案參考重做 |
-| `/ddd-import-example` | 參考 `reference-examples/import/` 下別專案導出的範例，生成引用範例的 FXX 草稿（含翻譯自 smoke test 的驗收條件），交給 `/ddd-tdd` 實作 |
+| `/ddd-create-folder` | **New project initialization**: creates the documents/ folder and F00 / R00 / B00 / P00 / Q00 / BUG00 / G00 templates |
+| `/ddd-start` | Entry point for any new work; detects type and routes |
+| `/ddd-doc` | Creates and maintains FXX / RXX / BXX documents and module documents |
+| `/ddd-tdd` | Document-driven TDD implementation with integrated structured debugging |
+| `/ddd-debug-trace` | Persists hard-bug investigation history across experiments and sessions, then hands the resolved root cause to a BXX |
+| `/ddd-plan` | PXX multi-phase planning for large changes; use when the scope of later phases depends on completing earlier phases first |
+| `/ddd-queue` | Continuously executes multiple ordered tasks; centralized grill-me clarifies all items first, then each item runs in a new session with its own commit; the QXX retains a compact ledger and archive index |
+| `/ddd-email-notify` | Displays current email info, configures and sends DDD operation notifications; manages `notify_email_from` / `notify_email_to`, and explains when tdd completed, queue blocked, and queue completed notifications are sent |
+| `/ddd-export-example` | Distills a successfully completed feature from this project into a standalone, verified green-light minimal example, exported to `reference-examples/export/` for other projects to reference |
+| `/ddd-import-example` | References examples exported by other projects under `reference-examples/import/`, generates an FXX draft that cites the example (including acceptance criteria translated from the smoke test), and hands it to `/ddd-tdd` for implementation |
 
-## Pocock 技能（按需使用）
+## Pocock Skills (On-Demand)
 
-這些技能由 `/ddd-start`、`/ddd-doc`、`/ddd-tdd` 在適當時機自動建議，也可以手動觸發：
+These skills are automatically suggested by `/ddd-start`, `/ddd-doc`, and `/ddd-tdd` at appropriate moments, and can also be triggered manually:
 
-| 技能 | 用途 | 典型觸發時機 |
+| Skill | Purpose | Typical trigger |
 |---|---|---|
-| `/grill-me` | 挖掘模糊需求 | 想法還不具體時 |
-| `/grill-with-docs` | 對照現有架構驗證計劃 | 需求涉及現有模組時 |
-| `/zoom-out` | 繪製模組地圖取得全局視角 | 重構範疇確認、進入陌生代碼時 |
-| `/to-prd` | 將非正式描述轉為結構化草稿 | 有粗略想法但缺乏規格時 |
-| `/diagnose` | 結構化除錯迴圈 | 測試意外失敗時 |
-| `/improve-codebase-architecture` | 浮現架構技術債 | 實作後、重構規劃前 |
-| `/handoff` | 壓縮會話狀態供下一個對話繼續 | 長時間實作週期 |
-| `/caveman` | 壓縮溝通減少 token | 文檔審查反覆確認措辭時 |
-| `/prototype` | 一次性探索驗證方案 | 高不確定性的功能設計時 |
-| `/git-guardrails` | 阻止破壞性 git 命令 | 首次設定專案時 |
+| `/grill-me` | Uncover ambiguous requirements | When an idea is not yet concrete |
+| `/grill-with-docs` | Validate a plan against existing architecture | When a requirement involves existing modules |
+| `/zoom-out` | Draw a module map for a high-level view | When confirming refactor scope or entering unfamiliar code |
+| `/to-prd` | Convert informal descriptions to a structured draft | When there is a rough idea but no specification |
+| `/diagnose` | Structured debugging loop | When a test fails unexpectedly |
+| `/improve-codebase-architecture` | Surface architectural technical debt | After implementation, before planning a refactor |
+| `/handoff` | Compact session state for the next conversation to continue | During long implementation cycles |
+| `/caveman` | Compress communication to reduce tokens | When iterating on document wording repeatedly |
+| `/prototype` | One-off exploratory validation of a solution | When a feature design has high uncertainty |
+| `/git-guardrails` | Block destructive git commands | When setting up a project for the first time |
 
-## 資料夾結構
+## Folder Structure
 
 ```
 ddd-workflow/
-├── README.md                      ← 本文件
-├── CONTEXT.md                     ← 填寫你的專案領域術語（必填）
-├── WORKFLOW.md                    ← 工作流程完整說明
+├── README.md                      ← This file
+├── CONTEXT.md                     ← Fill in your project's domain terminology (required)
+├── WORKFLOW.md                    ← Full workflow documentation
 └── skills/
-    ├── ddd-start/   ← 入口路由
-    ├── ddd-doc/     ← 文檔管理
-    ├── ddd-tdd/     ← TDD 實作
-    ├── ddd-plan/    ← 大型改動規劃
-    ├── ddd-queue/   ← 長時間工作佇列
-    ├── ddd-email-notify/ ← DDD tdd / queue 通知信設定、狀態顯示與寄送
-    ├── ddd-export-example/ ← 導出最小可跑範例到 reference-examples/export/
-    │   └── templates/ ← MANIFEST 模板
-    ├── ddd-import-example/ ← 參考 reference-examples/import/ 範例生成 FXX
+    ├── ddd-start/   ← Entry routing
+    ├── ddd-doc/     ← Document management
+    ├── ddd-tdd/     ← TDD implementation
+    ├── ddd-debug-trace/ ← Persistent hard-bug investigation
+    ├── ddd-plan/    ← Large change planning
+    ├── ddd-queue/   ← Long-running work queue
+    ├── ddd-email-notify/ ← DDD tdd / queue notification email configuration, status display, and sending
+    ├── ddd-export-example/ ← Export minimal runnable examples to reference-examples/export/
+    │   └── templates/ ← MANIFEST templates
+    ├── ddd-import-example/ ← Generate FXX from examples under reference-examples/import/
     ├── ddd-create-folder/
-    │   └── templates/ ← F00 / R00 / B00 / P00 / Q00 / G00 的唯一模板來源
+    │   └── templates/ ← Sole template source for F00 / R00 / B00 / P00 / Q00 / BUG00 / G00
     ├── grill-me/
     ├── grill-with-docs/
     ├── zoom-out/
@@ -107,19 +109,19 @@ ddd-workflow/
     └── git-guardrails/
 ```
 
-## 你的專案文檔應放在哪裡
+## Where to Place Your Project Documents
 
-將實作文檔和模組文檔放在你的**專案根目錄**下：
+Place implementation documents and module documents under your **project root**:
 
 ```
-你的專案/
+your-project/
 ├── documents/
-│   ├── implements/   ← FXX / RXX / BXX 工作文檔
-│   ├── planning/     ← PXX 多階段規劃書
-│   ├── queue/        ← QXX 長時間工作佇列
-│   │   └── logs/     ← queue 長 log / archive
-│   └── modules/      ← 模組高層次文檔
-└── CONTEXT.md        ← 從 ddd-workflow/CONTEXT.md 複製並填寫
+│   ├── implements/   ← FXX / RXX / BXX work documents
+│   ├── planning/     ← PXX multi-phase planning documents
+│   ├── queue/        ← QXX long-running work queues
+│   │   └── logs/     ← queue long logs / archives
+│   └── modules/      ← High-level module documents
+└── CONTEXT.md        ← Copy from ddd-workflow/CONTEXT.md and fill in
 ```
 
-模板唯一來源位於 `ddd-workflow/skills/ddd-create-folder/templates/`。不要在 `ddd-workflow/documents/implements/` 再維護第二份模板。
+The sole template source is `ddd-workflow/skills/ddd-create-folder/templates/`. Do not maintain a second copy of templates in `ddd-workflow/documents/implements/`.

@@ -1,37 +1,37 @@
 ---
-title: <操作名稱，例如「執行測試」、「打包建置」>
-service: <此 guide 所屬的服務或模組名稱>
-date: <文件日期>
+title: <operation name, e.g. "Run tests", "Build package">
+service: <service or module this guide belongs to>
+date: <document date>
 ---
 
-# G0X — [操作名稱]
+# G0X — [Operation name]
 
-## 快速指令
+## Quick commands
 
 ```bash
-# 最常用的一行指令，讓工程師可以直接複製使用
+# The most common one-liner, ready to copy and run
 ```
 
 ---
 
-## 前置條件
+## Prerequisites
 
-- 列出執行前必須滿足的環境或依賴條件
-- 例如：需先安裝 X、設定 Y 環境變數
+- List environment or dependency conditions that must be met before running
+- Example: X must be installed, Y environment variable must be set
 
-## 詳細步驟
+## Detailed steps
 
-1. **步驟一**
-   說明與指令
+1. **Step 1**
+   Description and command
 
-2. **步驟二**
-   說明與指令
+2. **Step 2**
+   Description and command
 
-## 常見問題
+## Common issues
 
-**Q: [問題描述]**
-A: [解答]
+**Q: [Problem description]**
+A: [Answer]
 
-## 相關文檔
+## Related documents
 
-- 關聯的 FXX / RXX / BXX 文檔（若有）
+- Related FXX / RXX / BXX documents (if any)

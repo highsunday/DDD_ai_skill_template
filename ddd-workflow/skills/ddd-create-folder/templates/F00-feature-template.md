@@ -1,85 +1,83 @@
 ---
-author: <作者>
-date: <文件日期>
-title: <短一句話描述需求>
+author: <author>
+date: <document date>
+title: <one-line description of the requirement>
 uuid: 5ecf551c11ba45fbb5608fde46804f2f
-version: <版本號>
+version: <version>
 ---
 
-# 功能需求書 - XXX 功能
+# Feature Specification - XXX Feature
 
-## 1. 功能概述 (Feature Overview)  
-簡要說明此功能的目標、背景與商業動機，包含為何需要此功能，以及解決什麼問題。  
-例如：本功能旨在提供使用者登入入口，以確保系統資源僅供授權用戶存取。
+## 1. Feature Overview
+Briefly describe the goal, background, and business motivation for this feature, including why it is needed and what problem it solves.
+Example: This feature provides a user login entry point to ensure system resources are accessible only to authorized users.
 
-## 2. 需求描述 (Requirement/User Story)  
-- **As a** <使用者角色，例如「一般用戶」、「系統管理員」>  
-- **I want** <我希望系統提供什麼功能，例如「能夠登入帳號」>  
-- **So that** <我這樣做的目的或價值，例如「可以存取個人化的服務內容」>
+## 2. Requirements (User Story)
+- **As a** <user role, e.g. "regular user", "system administrator">
+- **I want** <what the system should provide, e.g. "to be able to log in to my account">
+- **So that** <the purpose or value, e.g. "I can access personalized service content">
 
-## 3. 驗收準則 (Acceptance Criteria)  
-使用「Given-When-Then」格式撰寫，每一條均為可驗證的功能測試準則。
+## 3. Acceptance Criteria
+Written in Given-When-Then format. Each criterion must be a verifiable functional test.
 
-- **Scenario 1:** <描述此情境的名稱，例如「登入成功」>  
-  - **Given** <前提條件，例如「使用者已註冊且帳號啟用」>  
-  - **When** <執行動作，例如「輸入正確帳號與密碼後送出登入」>  
-  - **Then** <預期結果，例如「導向首頁並顯示使用者名稱」>
+- **Scenario 1:** <name of this scenario, e.g. "Successful login">
+  - **Given** <precondition, e.g. "the user is registered and the account is active">
+  - **When** <action taken, e.g. "the user submits correct credentials">
+  - **Then** <expected result, e.g. "redirected to dashboard with username displayed">
 
-- **Scenario 2:** <登入失敗 - 錯誤密碼>  
-  - **Given** 使用者帳號存在  
-  - **When** 輸入錯誤密碼後送出  
-  - **Then** 顯示「密碼錯誤」提示訊息，不進入系統
+- **Scenario 2:** <Login failure — wrong password>
+  - **Given** the user account exists
+  - **When** the user submits an incorrect password
+  - **Then** an error message is shown and the user is not logged in
 
-## 4. 測試情境 (Test Scenarios / Examples)  
+## 4. Test Scenarios
 
-| ID  | Scenario                    | Given                       | When                       | Then                                | Priority |
-|-----|-----------------------------|-----------------------------|----------------------------|-------------------------------------|----------|
-| TC1 | 使用者輸入正確帳密         | 使用者已註冊且帳號啟用     | 輸入正確帳號與密碼送出    | 登入成功，導向首頁                  | High     |
-| TC2 | 使用者輸入錯誤密碼         | 帳號存在                   | 輸入錯誤密碼後送出        | 顯示「密碼錯誤」提示                | Medium   |
-| TC3 | 使用者帳號未啟用           | 使用者已註冊但尚未啟用     | 輸入帳密送出              | 顯示「帳號尚未啟用」                | Medium   |
-| TC4 | 使用者帳號不存在           | 無符合帳號                 | 任意帳密送出              | 顯示「帳號不存在」提示              | Low      |
+| ID  | Scenario                        | Given                             | When                          | Then                                  | Priority |
+|-----|---------------------------------|-----------------------------------|-------------------------------|---------------------------------------|----------|
+| TC1 | User enters correct credentials | User is registered and active     | Submits correct username/password | Login succeeds, redirected to dashboard | High   |
+| TC2 | User enters wrong password      | Account exists                    | Submits incorrect password    | "Wrong password" message shown        | Medium   |
+| TC3 | User account not activated      | User registered but not activated | Submits credentials           | "Account not activated" message shown | Medium   |
+| TC4 | User account does not exist     | No matching account               | Submits any credentials       | "Account not found" message shown     | Low      |
 
-## 5. 實作註記 (Implementation Notes)  
-- **驗證機制**：密碼需經雜湊後比對（例如使用 bcrypt）。  
-- **API 介面**：  
-  - `POST /api/login`  
-    - Request Body: `{ "email": "string", "password": "string" }`  
-    - Response: `{ "status": "success|error", "message": "string" }`  
-- **資料庫欄位建議**：users 表應包含 email、hashed_password、is_active 等欄位。  
-- **重構建議**：將認證邏輯封裝成 service，可重用於其他登入介面。
+## 5. Implementation Notes
+- **Validation**: Passwords must be hashed before comparison (e.g. bcrypt).
+- **API interface**:
+  - `POST /api/login`
+    - Request Body: `{ "email": "string", "password": "string" }`
+    - Response: `{ "status": "success|error", "message": "string" }`
+- **Database fields**: the users table should include email, hashed_password, is_active, etc.
+- **Refactor note**: encapsulate auth logic into a service so it can be reused by other login interfaces.
 
-## 6. 補充說明 (Additional Notes)  
+## 6. Additional Notes
 
 
-## 附錄：TDD 需求實作流程提醒 (TDD Implementation Checklist)
+## Appendix: TDD Implementation Checklist
 
-請依照以下流程進行開發
+Follow this process during development:
 
-1. 撰寫並調整需求說明
+1. Write and refine requirements
 
-    使用 User Story 與 Acceptance Criteria 格式清楚描述需求情境與預期結果。
+   Use User Story and Acceptance Criteria format to clearly describe the scenario and expected outcomes.
+   All criteria should map to verifiable, automatable test cases.
 
-    所有條件應能對應到「可驗證」、「可自動化」的測試案例。
+2. Write tests
 
-2. 建立測試
+   Write failing tests (red) based on the acceptance criteria.
+   Each Scenario should have at least one corresponding test case (including boundary conditions and exception handling).
 
-    根據驗收準則撰寫對應的失敗測試（紅燈）。
+3. Write minimal implementation
 
-    每個 Scenario 至少對應一筆測試案例（可含邊界條件與例外處理）。
+   Write only the minimum logic required to pass the tests. Avoid over-engineering.
 
-3. 撰寫最簡實作
+4. Tests pass (green)
 
-    僅為通過測試撰寫必要最少的邏輯，避免過度開發。
+   All test cases pass with no errors in the automated test suite.
 
-4. 測試通過（綠燈）
+5. Refactor
 
-    所有測試案例通過，自動化測試無錯誤。
+   With tests green, improve code structure and readability while keeping functional behavior consistent.
 
-5. 重構（Refactor）
+6. Sync documentation and version
 
-    在測試綠燈狀態下，優化程式結構與可讀性，保留功能行為一致。
-
-6. 文件與版本同步
-
-    驗證文件內容與實作結果一致，更新需求版本與測試記錄。
-    更新該文件內容，增加實作註記
+   Verify that documentation matches the implementation outcome. Update requirement version and test records.
+   Update this document with an implementation note.

@@ -1,201 +1,201 @@
 ---
 name: ddd-plan
-description: DDD 多階段規劃技能。將無法一次完成、且階段切分或後續範疇需要人類審查的大型改動分解為有序執行階段，為每個階段設計使用者可驗證的預期成果，並起草 PXX 規劃書供人類審查。審查通過後作為後續 FXX / RXX / BXX 文檔的上層依據。若使用者已能列出 2 到 5 個可自動推進的具體工作 item，請改用 ddd-queue。
+description: DDD multi-phase planning skill. Breaks down large-scale changes that cannot be completed in one pass — where phase breakdown or subsequent scope requires human review — into ordered execution phases. Designs user-verifiable expected outcomes for each phase and drafts a PXX planning document for human review. Once approved, it serves as the parent reference for subsequent FXX / RXX / BXX documents. If the user can already list 2 to 5 specific work items that can be automatically progressed, use ddd-queue instead.
 ---
 
 # DDD Plan
 
-大型改動的規劃入口。負責將模糊或龐大的需求分解為可獨立執行的階段，並為每個階段定義人類可實際操作確認的成果，再交由後續的 `ddd-doc` + `ddd-tdd` 逐階段執行。
+Entry point for planning large-scale changes. Responsible for breaking down vague or large requirements into independently executable phases, defining outcomes that humans can actually verify for each phase, then handing off to subsequent `ddd-doc` + `ddd-tdd` for phase-by-phase execution.
 
-## 核心規則
+## Core rules
 
-**沒有清晰的分解，就沒有 PXX。**
+**No clear breakdown, no PXX.**
 
-若需求本身太模糊，無法判斷它需要幾個階段、影響哪些模組，先執行 `grill-me` 深挖，再回來規劃。
+If the requirement itself is too vague to determine how many phases it needs or which modules it affects, run `grill-me` to dig deeper first, then come back to plan.
 
-**PXX 不是設計文件，是執行地圖。**
+**PXX is not a design document — it is an execution map.**
 
-PXX 的目的是讓接棒的 AI 知道現在在哪、下一步該做什麼。每個階段的「使用者確認方式」必須是人類實際能操作的動作，不是「測試通過」或「程式碼合併」。
-
----
-
-## 何時使用 ddd-plan
-
-**預設不用 PXX。** 有疑問時，先嘗試 `ddd-doc`——能用一份文件描述完整就不需要規劃書。
-
-### 應該使用 ddd-plan
-
-**明確觸發（使用者說出關鍵字）：**
-使用者主動說「幫我計劃」「規劃一下」「分階段規劃」「PXX」等詞，直接進入規劃，不再判斷。
-
-若使用者說的是「queue」「佇列」「批次執行」「每個功能新 session」「每個功能 commit」「讓 AI 先連續做」，且已列出可自動推進的具體 item，使用 `ddd-queue`，不要建立 PXX。
-
-**自動判斷（須同時符合全部條件）：**
-1. 現在寫不出完整的 F/R/B 文件（後期細節依賴前期結果）
-2. 存在真實的規劃依賴（B 的範疇或做法必須等 A 完成後才能確定）
-3. 不同部分的性質截然不同（例如：必須先重構底層，才能決定後續功能如何落地）
-
-### 不應該使用 ddd-plan
-
-- 需求複雜但可在一份文件內完整描述 → 直接 `ddd-doc`
-- 動到多個模組但屬於同一個功能 → 單份 FXX 即可
-- 只是「感覺很大」→ 先寫 F 文件，一頁寫不下再來規劃
-- 有優先順序或明確依賴，但所有 item 已能事先清楚列出並自動推進 → 使用 `ddd-queue`
-- 有優先順序但沒有依賴（A 和 B 都能獨立執行，只是先做 A）→ 分別開兩份 F 文件，或使用 `ddd-queue` 批次處理
+The purpose of PXX is to let the handing-off AI know where things currently stand and what the next step should be. Each phase's "user verification method" must be an action a human can actually perform — not "tests pass" or "code merged."
 
 ---
 
-## 步驟一 — 載入領域語言
+## When to use ddd-plan
 
-在根目錄查找 `CONTEXT.md`：
+**Default: do not use PXX.** When in doubt, try `ddd-doc` first — if one document can fully describe everything, no planning document is needed.
 
-- 若存在：讀取並記住術語表。後續所有文檔術語必須與其一致。
-- 若不存在：繼續流程，在草擬 PXX 時使用使用者描述中的詞彙，並在完成後建議補充 `CONTEXT.md`。
+### Should use ddd-plan
 
----
+**Explicit trigger (user says a keyword):**
+If the user explicitly says "help me plan," "plan this out," "phase-by-phase planning," "PXX," etc., go directly into planning without further evaluation.
 
-## 步驟二 — 攔截模糊需求
+If the user says "queue," "batch execution," "new session per feature," "commit per feature," "let AI run continuously," and has already listed specific items that can be automatically progressed, use `ddd-queue` — do not create a PXX.
 
-在進入分解之前，評估需求的可操作程度：
+**Automatic evaluation (all conditions must be met simultaneously):**
+1. A complete F/R/B document cannot be written right now (later details depend on earlier results)
+2. There are real planning dependencies (the scope or approach of B cannot be determined until A is finished)
+3. The nature of different parts is fundamentally different (e.g., the underlying layer must be refactored before deciding how subsequent features land)
 
-**若需求極度模糊**（無法辨識改動邊界、不知道哪些模組會被影響）：
-- 告知使用者：「這個需求的範疇還不夠清楚，先用 `/grill-me` 深挖後再來規劃。」
-- 暫停，等待使用者決定。
+### Should not use ddd-plan
 
-**若需求大致清楚，但細節待確認**：
-- 繼續步驟三，並在草擬階段時主動標注不確定點，供使用者審查。
-
-**若需求已清楚**：直接進入步驟三。
-
----
-
-## 步驟三 — 理解全貌
-
-在分解階段之前，先完整理解整體改動：
-
-1. **確認總體目標**：用一句話描述「全部做完後，使用者能體驗到什麼不同」。
-2. **盤點影響範圍**：列出此次改動預計影響的模組或功能區域。
-   - 讀取 `documents/modules/`（若存在）中的相關模組文檔
-   - 用 `rg` 在程式碼庫搜尋相關模組名稱、服務、路由、元件
-3. **識別依賴關係**：哪些部分必須先完成才能開始下一個部分？
-4. **確認改動類型組合**：各個部分分別屬於新功能（F）、重構（R）還是 Bug 修正（B）？
+- Requirement is complex but can be fully described in one document → go directly to `ddd-doc`
+- Changes span multiple modules but belong to the same feature → a single FXX is sufficient
+- It just "feels large" → write an F document first; only plan if it doesn't fit on one page
+- There is ordering or clear dependency, but all items can be clearly listed upfront and automatically progressed → use `ddd-queue`
+- There is ordering but no dependency (A and B can both run independently, just do A first) → create two separate F documents, or use `ddd-queue` for batch processing
 
 ---
 
-## 步驟四 — 切分階段
+## Step 1 — Load domain language
 
-### 切分原則
+Look for `CONTEXT.md` in the root directory:
 
-每個階段必須滿足：
-
-- **獨立可交付**：這個階段完成後，系統仍處於可運行、可使用的狀態。
-- **邊界清晰**：不跨越兩個以上的主要功能區域。
-- **可對應一份文檔**：每個階段應能由一份 FXX / RXX / BXX 文檔完整描述。
-- **有可觀察的成果**：使用者能在這個階段結束後，做一個具體的動作來確認它完成了。
-
-**不良的階段切分（應避免）：**
-- 階段 1「完成後端」/ 階段 2「完成前端」— 橫切技術層而非功能邊界，使用者無法在階段 1 結束時確認任何行為
-- 過多的階段（超過 6 個）— 通常表示需求本身應該縮小範疇
-
-### 建議的分解順序
-
-當有疑問時，依照以下優先順序排列階段：
-
-1. **基礎設施 / 資料模型**（若需要）— 重構，確保後續功能有穩固的基礎
-2. **核心功能**（最高業務價值）— 先讓最重要的使用者行為可用
-3. **延伸功能**— 在核心基礎上擴展
-4. **清理與修正**— 整合過程中發現的 Bug 或技術債
-
-### 為每個階段設計使用者確認方式
-
-「使用者確認方式」是 PXX 的核心。它必須是人類**實際能操作的動作**，而非技術指標：
-
-**不良範例（技術指標）：**
-- ~~「所有測試通過」~~
-- ~~「API 回傳 200 狀態碼」~~
-- ~~「資料庫 migration 完成」~~
-
-**良好範例（使用者操作）：**
-- 「在登入頁面輸入測試帳號，確認能成功進入儀表板」
-- 「點擊「匯出」按鈕，確認能下載格式正確的 CSV 檔案」
-- 「在舊有頁面執行原有操作，確認行為與改動前一致」（適用重構階段）
-
-每個確認動作應包含：做什麼 + 預期看到什麼。
+- If it exists: read it and memorize the glossary. All subsequent document terminology must be consistent with it.
+- If it does not exist: continue the process, use vocabulary from the user's description when drafting the PXX, and suggest adding `CONTEXT.md` afterward.
 
 ---
 
-## 步驟五 — 草擬 PXX 文檔
+## Step 2 — Intercept vague requirements
 
-找到 `documents/planning/P00-planning-template.md` 讀取模板。
+Before entering the breakdown, assess the actionability of the requirement:
 
-確認下一個可用的 PXX 編號（掃描 `documents/planning/` 中現有的 PXX 文件）。
+**If the requirement is extremely vague** (cannot identify change boundaries or which modules will be affected):
+- Inform the user: "The scope of this requirement is not yet clear enough. Use `/grill-me` to dig deeper before planning."
+- Pause and wait for the user to decide.
 
-依照模板結構起草，確保：
+**If the requirement is broadly clear but details need confirmation:**
+- Continue to Step 3 and proactively annotate uncertain points during the drafting phase for user review.
 
-- **背景與動機**：說明為什麼這個改動需要分階段，而非直接進入 FXX/BXX/RXX。
-- **總體目標**：一句話，使用者語言，聚焦在可體驗的改變。
-- **影響範圍**：列出受影響的模組，為每個模組標注改動類型。
-- **總覽表格**：所有階段一眼可見，狀態初始為 `[ ] 未開始`。
-- **每個階段卡片**：
-  - 描述簡潔，說明技術方向與邏輯邊界
-  - 使用者確認方式為具體的 checkbox 清單
-  - 建議文檔類型（FXX / RXX / BXX）已填入
-  - 關聯文檔欄位留 `—`（執行後才填）
-- **接棒說明**：不修改，保持模板原有的通用指引。
+**If the requirement is already clear:** go directly to Step 3.
 
 ---
 
-## 步驟六 — 完成前檢查
+## Step 3 — Understand the full picture
 
-草擬完成後，逐一核對：
+Before breaking down phases, fully understand the overall change:
 
-- [ ] 每個階段是否都能讓系統保持可運行狀態？
-- [ ] 每個「使用者確認方式」是否是人類實際能操作的動作（不是技術指標）？
-- [ ] 每個階段的邊界是否清晰，不跨越兩個主要功能區域？
-- [ ] 階段順序是否反映了真實的依賴關係（後面的階段不依賴前面未完成的部分）？
-- [ ] 每個階段的「建議文檔類型」是否合理（新功能 F、結構改善 R、缺陷修正 B）？
-- [ ] 文檔中是否有未確認的假設？若有，已明確標注並請使用者審查？
+1. **Confirm the overall goal**: Describe in one sentence "after everything is done, what different experience will the user have."
+2. **Inventory the impact scope**: List the modules or functional areas this change is expected to affect.
+   - Read relevant module documents in `documents/modules/` (if it exists)
+   - Use `rg` to search the codebase for relevant module names, services, routes, components
+3. **Identify dependencies**: Which parts must be completed before the next part can begin?
+4. **Confirm the mix of change types**: Are each of the parts a new feature (F), refactor (R), or bug fix (B)?
 
 ---
 
-## 提交審查
+## Step 4 — Phase breakdown
 
-完成草稿後，向使用者說明：
+### Breakdown principles
 
-1. 規劃了幾個階段、整體改動的大致規模
-2. 每個階段的核心目標（一句話）
-3. 任何需要使用者確認的假設或不確定點
-4. 提醒使用者：**審查重點在於階段切分是否合理、使用者確認方式是否可操作**，而非技術細節
+Each phase must satisfy:
 
-格式：
+- **Independently deliverable**: After this phase is complete, the system remains in a runnable, usable state.
+- **Clear boundaries**: Does not cross more than two major functional areas.
+- **Maps to one document**: Each phase should be fully describable by a single FXX / RXX / BXX document.
+- **Has an observable outcome**: The user can perform a specific action at the end of this phase to confirm it is complete.
+
+**Poor phase breakdown (avoid):**
+- Phase 1 "complete backend" / Phase 2 "complete frontend" — cuts across technical layers rather than functional boundaries; the user cannot confirm any behavior at the end of Phase 1
+- Too many phases (more than 6) — usually indicates the requirement itself should be reduced in scope
+
+### Recommended decomposition order
+
+When in doubt, arrange phases in the following priority order:
+
+1. **Infrastructure / data model** (if needed) — refactor, ensuring subsequent features have a solid foundation
+2. **Core functionality** (highest business value) — make the most important user behavior available first
+3. **Extended functionality** — expand on the core foundation
+4. **Cleanup and fixes** — bugs or technical debt discovered during integration
+
+### Design user verification methods for each phase
+
+The "user verification method" is the heart of PXX. It must be an action a human **can actually perform** — not a technical metric:
+
+**Poor examples (technical metrics):**
+- ~~"All tests pass"~~
+- ~~"API returns 200 status code"~~
+- ~~"Database migration complete"~~
+
+**Good examples (user actions):**
+- "Enter test credentials on the login page and confirm successful entry to the dashboard"
+- "Click the 'Export' button and confirm a correctly formatted CSV file can be downloaded"
+- "Perform the original operations on the old page and confirm behavior is consistent with before the change" (for refactor phases)
+
+Each verification action should include: what to do + what to expect to see.
+
+---
+
+## Step 5 — Draft the PXX document
+
+Find `documents/planning/P00-planning-template.md` and read the template.
+
+Confirm the next available PXX number (scan existing PXX files in `documents/planning/`).
+
+Draft following the template structure, ensuring:
+
+- **Background and motivation**: Explain why this change needs to be phased rather than going directly to FXX/BXX/RXX.
+- **Overall goal**: One sentence, in user language, focused on the experiential change.
+- **Impact scope**: List affected modules, annotating the change type for each module.
+- **Overview table**: All phases visible at a glance, with initial status `[ ] Not started`.
+- **Each phase card**:
+  - Description is concise, explaining technical direction and logical boundary
+  - User verification method is a specific checkbox list
+  - Suggested document type (FXX / RXX / BXX) is filled in
+  - Associated document field left as `—` (filled in after execution)
+- **Handoff notes**: Do not modify; keep the template's original general guidance.
+
+---
+
+## Step 6 — Pre-submission checklist
+
+After drafting is complete, verify each item:
+
+- [ ] Does each phase leave the system in a runnable state?
+- [ ] Is each "user verification method" an action a human can actually perform (not a technical metric)?
+- [ ] Is each phase's boundary clear, not crossing two major functional areas?
+- [ ] Does the phase order reflect real dependencies (later phases do not depend on earlier unfinished parts)?
+- [ ] Is the "suggested document type" for each phase reasonable (new feature F, structural improvement R, defect fix B)?
+- [ ] Are there any unconfirmed assumptions in the document? If so, have they been clearly annotated and flagged for user review?
+
+---
+
+## Submit for review
+
+After completing the draft, explain to the user:
+
+1. How many phases were planned and the approximate scale of the overall change
+2. The core goal of each phase (one sentence)
+3. Any assumptions or uncertain points that need user confirmation
+4. Remind the user: **The review focus is on whether the phase breakdown is reasonable and whether the user verification methods are actionable** — not on technical details
+
+Format:
 ```
-PXX 規劃書草稿完成。
+PXX planning document draft complete.
 
-共 N 個階段：
-  P1 — [名稱]：[一句話目標]（建議 FXX）
-  P2 — [名稱]：[一句話目標]（建議 RXX）
+N phases in total:
+  P1 — [name]: [one-sentence goal] (suggested FXX)
+  P2 — [name]: [one-sentence goal] (suggested RXX)
   ...
 
-需要確認的假設：
-  - [列出不確定點，若無則省略]
+Assumptions needing confirmation:
+  - [list uncertain points; omit if none]
 
-審查重點：
-  - 階段切分是否合理？有沒有哪個階段太大或太小？
-  - 每個「使用者確認方式」你實際上能操作嗎？
-  - 階段順序是否符合你的執行計劃？
+Review focus:
+  - Is the phase breakdown reasonable? Is any phase too large or too small?
+  - Can you actually perform each "user verification method"?
+  - Does the phase order match your execution plan?
 
-核准後，執行 /ddd-doc 開始第一個階段，AI 會讀取 PXX 並起草對應的 FXX / RXX / BXX 文檔。
+Once approved, run /ddd-doc to start the first phase — the AI will read the PXX and draft the corresponding FXX / RXX / BXX document.
 ```
 
 ---
 
-## 階段執行中：更新 PXX
+## During phase execution: updating PXX
 
-每個階段的 F/R/B 文檔實作完成後，負責更新 PXX 的 AI 應執行：
+After each phase's F/R/B document implementation is complete, the AI responsible for updating PXX should:
 
-1. 將該階段的「關聯文檔」欄填入實際文件路徑（例如 `documents/implements/F01-auth-login.md`）
-2. 將該階段狀態從 `[~] 進行中` 改為 `[x] 已完成`
-3. 同步更新總覽表格
-4. 若為最後一個階段，將文檔 frontmatter 的 `status` 改為 `completed`
+1. Fill in the "associated document" field for that phase with the actual file path (e.g., `documents/implements/F01-auth-login.md`)
+2. Change that phase's status from `[~] In progress` to `[x] Completed`
+3. Synchronously update the overview table
+4. If this is the last phase, change the document frontmatter `status` to `completed`
 
-**不要在實作尚未完成（`ddd-tdd` 驗收未通過）前將階段標記為 `[x]`。**
+**Do not mark a phase as `[x]` before implementation is complete (`ddd-tdd` acceptance has not yet passed).**

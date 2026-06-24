@@ -1,44 +1,44 @@
 ---
 name: ddd-create-folder
-description: 在新專案中建立 DDD 工作流程所需的資料夾結構與文檔模板。建立 documents/ddd-email-notify.md、documents/implements/（含 F00 / R00 / B00 模板）、documents/planning/（含 P00 模板）、documents/queue/（含 Q00 長時間工作佇列模板與 logs/ 歸檔資料夾）、documents/bugs/（含 BUG00 硬 bug 排查軌跡模板）、documents/modules/、documents/guides/（含 G00 模板）與 reference-examples/（含 export/ import/ 子資料夾，供 ddd-export-example / ddd-import-example 存放跨專案範例）。當在新專案中初始化 DDD 工作流程時使用。
+description: Creates the folder structure and document templates required for the DDD workflow in a new project. Sets up documents/ddd-email-notify.md, documents/implements/ (with F00 / R00 / B00 templates), documents/planning/ (with P00 template), documents/queue/ (with Q00 long-running work queue template and logs/ archive folder), documents/bugs/ (with BUG00 hard-bug investigation template), documents/modules/, documents/guides/ (with G00 template), and reference-examples/ (with export/ and import/ subfolders for storing cross-project examples used by ddd-export-example / ddd-import-example). Use when initializing the DDD workflow in a new project.
 ---
 
 # DDD Create Folder
 
-在當前專案中建立 DDD 工作流程所需的完整資料夾結構與初始模板檔案。
+Creates the complete folder structure and initial template files required for the DDD workflow in the current project.
 
-## 步驟一 — 確認建立位置
+## Step 1 — Confirm creation location
 
-在當前工作目錄（專案根目錄）建立以下結構：
+Create the following structure in the current working directory (project root):
 
 ```
 documents/
-├── ddd-email-notify.md ← 專案層寄信通知設定
-├── implements/     ← FXX / RXX / BXX 工作文檔存放處
+├── ddd-email-notify.md ← project-level email notification settings
+├── implements/     ← storage for FXX / RXX / BXX work documents
 │   ├── F00-feature-template.md
 │   ├── R00-refactor-template.md
 │   └── B00-bugfix-template.md
-├── planning/       ← PXX 多階段規劃書存放處
+├── planning/       ← storage for PXX multi-phase planning documents
 │   └── P00-planning-template.md
-├── queue/          ← QXX 長時間工作佇列存放處
+├── queue/          ← storage for QXX long-running work queues
 │   ├── Q00-queue-template.md
-│   └── logs/       ← queue 長 log / archive 存放處
-├── bugs/           ← BUG-XX 硬 bug 排查軌跡存放處（ddd-debug-trace 使用）
+│   └── logs/       ← storage for queue long logs / archives
+├── bugs/           ← storage for BUG-XX hard-bug investigation traces
 │   └── BUG00-trace-template.md
-├── modules/        ← 模組高層次文檔存放處（初始為空）
-└── guides/         ← GXX 操作指南存放處（執行測試、打包等）
+├── modules/        ← storage for module high-level documents (initially empty)
+└── guides/         ← storage for GXX operation guides (running tests, building, etc.)
     └── G00-guide-template.md
 
-reference-examples/  ← 跨專案最小可跑範例（頂層，獨立於 documents/）
-├── export/          ← 本專案用 ddd-export-example 導出的 bundle
-└── import/          ← 從別專案複製進來、給 ddd-import-example 參考的 bundle
+reference-examples/  ← minimal runnable cross-project examples (top-level, independent of documents/)
+├── export/          ← bundles exported from this project using ddd-export-example
+└── import/          ← bundles copied in from other projects for ddd-import-example to reference
 ```
 
-若 `documents/` 資料夾已存在，告知使用者並詢問是否繼續（避免覆蓋現有內容）。
+If the `documents/` folder already exists, notify the user and ask whether to continue (to avoid overwriting existing content).
 
-## 步驟二 — 建立資料夾
+## Step 2 — Create folders
 
-執行以下指令：
+Run the following commands:
 
 ```bash
 mkdir -p documents/implements
@@ -52,9 +52,9 @@ mkdir -p reference-examples/export
 mkdir -p reference-examples/import
 ```
 
-## 步驟三 — 寫入模板檔案
+## Step 3 — Write template files
 
-讀取本技能資料夾（`skills/ddd-create-folder/templates/`）中的模板，將其內容原封不動寫入專案：
+Read the templates from this skill's folder (`skills/ddd-create-folder/templates/`) and write their contents unchanged into the project:
 
 - `templates/F00-feature-template.md` → `documents/implements/F00-feature-template.md`
 - `templates/DDD-email-notify-template.md` → `documents/ddd-email-notify.md`
@@ -65,43 +65,43 @@ mkdir -p reference-examples/import
 - `templates/BUG00-trace-template.md`  → `documents/bugs/BUG00-trace-template.md`
 - `templates/G00-guide-template.md`    → `documents/guides/G00-guide-template.md`
 
-若目標檔案已存在，**不覆蓋**，並告知使用者跳過了哪些檔案。
+If a target file already exists, **do not overwrite** it, and notify the user which files were skipped.
 
-## 步驟四 — 建立 CONTEXT.md（可選）
+## Step 4 — Create CONTEXT.md (optional)
 
-詢問使用者：「是否要在專案根目錄建立 `CONTEXT.md` 領域語言模板？」
+Ask the user: "Would you like to create a `CONTEXT.md` domain language template in the project root?"
 
-若同意，在專案根目錄建立以下內容的 `CONTEXT.md`：
+If they agree, create a `CONTEXT.md` in the project root with the following content:
 
 ```markdown
-# CONTEXT.md — 專案領域語言
+# CONTEXT.md — Project Domain Language
 
-> 這是專案的領域詞彙表。所有 AI 技能在撰寫文檔、測試或代碼之前都會讀取此檔案。
-> 請填入你的專案詞彙，刪除不適用的範例。
+> This is the project's domain vocabulary. All AI skills read this file before writing documents, tests, or code.
+> Fill in your project's terminology and remove any examples that do not apply.
 
-## Language（術語定義）
+## Language (term definitions)
 
-**[術語 1]**：
-[定義]
-_避免使用：_ [近義詞]
+**[Term 1]**:
+[Definition]
+_Avoid using:_ [synonyms]
 
-## Relationships（關係說明）
+## Relationships
 
-## Architecture Boundaries（架構邊界）
+## Architecture Boundaries
 
-## Flagged Ambiguities（已釐清的模糊點）
+## Flagged Ambiguities
 ```
 
-若根目錄已有 `CONTEXT.md`，不覆蓋，告知使用者已跳過。
+If a `CONTEXT.md` already exists in the root, do not overwrite it; notify the user that it was skipped.
 
-## 步驟五 — 報告結果
+## Step 5 — Report results
 
-完成後輸出建立摘要：
+Output a creation summary upon completion:
 
 ```
-DDD 資料夾初始化完成：
+DDD folder initialization complete:
 
-已建立：
+Created:
   ✓ documents/implements/
   ✓ documents/planning/
   ✓ documents/queue/
@@ -119,13 +119,13 @@ DDD 資料夾初始化完成：
   ✓ documents/queue/Q00-queue-template.md
   ✓ documents/bugs/BUG00-trace-template.md
   ✓ documents/guides/G00-guide-template.md
-  [✓ CONTEXT.md（若使用者選擇建立）]
+  [✓ CONTEXT.md (if the user chose to create it)]
 
-已跳過（已存在）：
-  [列出跳過的檔案，若無則省略]
+Skipped (already exists):
+  [list skipped files, omit this section if none]
 
-下一步：
-  1. 填寫 CONTEXT.md 定義你的專案領域術語
-  2. 填寫 documents/ddd-email-notify.md 的 notify_email_from / notify_email_to（若需要完成或 blocked 通知）
-  3. 執行 /ddd-start 開始第一個工作
+Next steps:
+  1. Fill in CONTEXT.md to define your project's domain terminology
+  2. Fill in notify_email_from / notify_email_to in documents/ddd-email-notify.md (if you need completion or blocked notifications)
+  3. Run /ddd-start to begin your first task
 ```

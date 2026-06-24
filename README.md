@@ -1,228 +1,226 @@
-# DDD × Pocock — AI 輔助開發工作流程
+# DDD x Pocock — AI-Assisted Development Workflow
 
-**DDD（Document-Driven Development）** 就是：先寫文檔，再寫代碼。
+**DDD (Document-Driven Development)** means: write the document first, then write the code.
 
-**AI 起草文檔 → 你審查核准 → AI 依文檔實作**
+**AI drafts the document → you review and approve → AI implements from the document**
 
-「文檔」不是事後補寫的說明，而是開始寫代碼前就要存在的需求契約。AI 不從聊天訊息直接寫代碼，只從你核准過的文檔寫代碼。
-
----
-
-## 為什麼需要這套流程
-
-沒有結構的 AI 開發，通常會遇到這四個問題：
-
-1. **需求飄移** — 你說「做個登入」，AI 做完你才發現跟想的不一樣，但你也說不清楚哪裡不對，因為從頭到尾都沒有寫下來。
-2. **不知道「完成」是什麼** — AI 說做完了，但你沒有標準確認。
-3. **測試失敗就亂改** — AI 猜測性地改代碼，越改越亂，原因沒找到。
-4. **技術債消失在對話裡** — 發現設計問題，但沒有地方記，下次再遇到重頭討論。
-
-DDD 在流程的每個節點都有對應設計來攔截這四個問題。
+A "document" is not an after-the-fact explanation — it is a requirements contract that must exist before coding begins. AI does not write code directly from chat messages; it only writes code from documents you have approved.
 
 ---
 
-## 三個不能打破的規則
+## Why This Workflow
 
-| 規則 | 意思 |
+Unstructured AI development typically runs into four problems:
+
+1. **Requirement drift** — You say "add a login," AI finishes it, and you realize it's not what you had in mind — but you can't articulate what's wrong because nothing was ever written down.
+2. **No definition of "done"** — AI says it's finished, but you have no standard to verify against.
+3. **Guessing when tests fail** — AI speculatively edits code, making things worse without finding the root cause.
+4. **Technical debt disappears in conversation** — A design problem surfaces, but there's nowhere to record it, so the next time it comes up you start from scratch.
+
+DDD has a corresponding design at every stage of the process to intercept each of these four problems.
+
+---
+
+## Three Rules That Cannot Be Broken
+
+| Rule | Meaning |
 |---|---|
-| 沒有核准的文檔，不能寫代碼 | `ddd-tdd` 看不到文檔就停下來，強迫你先想清楚 |
-| 沒有測試通過，不算完成 | 「應該沒問題」不算，要有測試證據才結案 |
-| 測試意外失敗，要結構化除錯 | 走 `diagnose` 找根因，不是猜測性地亂改 |
+| No approved document, no code | `ddd-tdd` stops without a document, forcing you to think it through first |
+| No passing tests, not done | "Should be fine" does not count — test evidence is required before closing |
+| Unexpected test failure requires structured debugging | Use `diagnose` to find the root cause — do not make speculative changes |
 
 ---
 
-## 角色分工
+## Roles
 
-**你：** 提需求、審查文檔、核准、確認驗收結果
-**AI：** 挖掘需求、起草文檔、寫代碼、更新記錄
+**You:** provide requirements, review documents, approve, confirm acceptance results
+**AI:** surface requirements, draft documents, write code, update records
 
-核心只有一個：**AI 起草，但你核准**。核准這個動作是整個流程的品質閘門。
-
----
-
-## 核心流程
-
-```
-你提出需求
-    ↓
-/ddd-start   判斷需求類型，必要時先挖掘清楚
-    ↓
-/ddd-doc     AI 起草文檔（FXX / RXX / BXX）
-    ↓
-你 審查並核准
-    ↓
-/ddd-tdd     紅燈 → 綠燈 → 驗收
-    ↓
-/ddd-doc     更新實作記錄，同步模組文檔
-```
+The core principle is one thing: **AI drafts, but you approve**. That approval act is the quality gate for the entire workflow.
 
 ---
 
-## 怎麼選流程
+## Core Workflow
 
 ```
-需求是什麼？
+You describe the requirement
+    ↓
+/ddd-start   Detect requirement type, surface ambiguities if needed
+    ↓
+/ddd-doc     AI drafts the document (FXX / RXX / BXX)
+    ↓
+You review and approve
+    ↓
+/ddd-tdd     Red → Green → Acceptance
+    ↓
+/ddd-doc     Update implementation record, sync module documents
+```
+
+---
+
+## How to Choose a Workflow
+
+```
+What is the requirement?
 │
-├─ 說不清楚         → /ddd-start → grill-me 先挖
-├─ 改現有模組       → /ddd-start → grill-with-docs 驗證架構
-├─ 全新功能         → /ddd-start → ddd-doc FXX
-├─ 重構             → /ddd-start → zoom-out → ddd-doc RXX
-├─ Bug（知道要改哪）→ /ddd-start → ddd-doc BXX
-├─ Bug（根因未明）  → /ddd-start → ddd-debug-trace（持久化排查軌跡，逐步收斂）
-├─ 多個工作一次做   → /ddd-queue（每個 item 有明確需求與驗收方式）
-└─ 大型改動         → /ddd-plan（後期細節要等前期結果才能定）
+├─ Not clear yet           → /ddd-start → grill-me to surface it first
+├─ Modifying existing module → /ddd-start → grill-with-docs to validate architecture
+├─ Brand new feature       → /ddd-start → ddd-doc FXX
+├─ Refactor                → /ddd-start → zoom-out → ddd-doc RXX
+├─ Bug (root cause known)  → /ddd-start → ddd-doc BXX
+├─ Bug (root cause unknown)→ /ddd-start → ddd-debug-trace (persist investigation history and converge)
+├─ Multiple items at once  → /ddd-queue (each item has clear requirements and acceptance criteria)
+└─ Large-scale change      → /ddd-plan (later details depend on earlier results)
 ```
 
-**queue 還是 plan？**
-- 現在就能列出所有 item 的需求和驗收方式 → **queue**
-- 後面要做什麼要等前面完成才知道 → **plan**
+**Queue or plan?**
+- You can list all items' requirements and acceptance criteria right now → **queue**
+- What comes next depends on what the earlier phases produce → **plan**
 
 ---
 
-## 指令說明
+## Command Reference
 
-### `/ddd-create-folder` — 初始化專案
+### `/ddd-create-folder` — Initialize the project
 
-在新專案中建立 DDD 所需的資料夾結構與初始模板。**第一次導入 DDD 時使用。**
+Creates the DDD folder structure and initial templates in a new project. **Use this the first time you introduce DDD.**
 
 ```
 documents/
-├── ddd-email-notify.md         ← 通知信箱設定
+├── ddd-email-notify.md         ← notification email settings
 ├── implements/                 ← FXX / RXX / BXX
-├── planning/                   ← PXX 多階段規劃書
-├── queue/                      ← QXX 工作佇列
+├── planning/                   ← PXX multi-phase plans
+├── queue/                      ← QXX work queues
 │   └── logs/
-├── bugs/                       ← BUG-XX 硬 bug 排查軌跡
-├── modules/                    ← 模組高層次文檔
-└── guides/                     ← GXX 操作指南
-CONTEXT.md                      ← 領域詞彙表（可選）
+├── bugs/                       ← BUG-XX hard-bug investigation traces
+├── modules/                    ← high-level module documents
+└── guides/                     ← GXX operation guides
+CONTEXT.md                      ← domain glossary (optional)
 ```
 
-初始化後：填寫 `CONTEXT.md` 定義專案術語 → 填寫寄信設定 → `/ddd-start` 開始第一個工作。
+After initialization: fill in `CONTEXT.md` to define project terminology → configure email notification settings → `/ddd-start` to begin the first task.
 
 ---
 
-### `/ddd-start` — 所有新工作的入口
+### `/ddd-start` — Entry point for all new work
 
-偵測需求類型並路由到正確步驟，確保沒有模糊需求直接進入文檔撰寫。**每次提出新工作都從這裡開始。**
+Detects requirement type and routes to the correct next step, ensuring no ambiguous requirement goes directly into document drafting. **Start every new task here.**
 
-| 需求類型 | 路由到 |
+| Requirement type | Routes to |
 |---|---|
-| 模糊想法 | `grill-me` → `ddd-doc FXX` |
-| 涉及現有架構的新功能 | `grill-with-docs` → `ddd-doc FXX` |
-| 規格清晰的新功能 | `ddd-doc FXX` |
-| 重構任務 | `zoom-out` → `ddd-doc RXX` |
-| Bug 回報（根因已知、可乾淨修） | `ddd-doc BXX` |
-| Bug 回報（根因未明、硬 bug） | `ddd-debug-trace` |
-| 2-5 個工作想一次做完 | `ddd-queue` |
-| 多階段大型改動 | `ddd-plan` |
+| Vague idea | `grill-me` → `ddd-doc FXX` |
+| New feature touching existing architecture | `grill-with-docs` → `ddd-doc FXX` |
+| Well-specified new feature | `ddd-doc FXX` |
+| Refactor task | `zoom-out` → `ddd-doc RXX` |
+| Bug report (root cause known, clean fix) | `ddd-doc BXX` |
+| Bug report (root cause unknown, hard bug) | `ddd-debug-trace` |
+| 2–5 items to complete in one go | `ddd-queue` |
+| Multi-phase large-scale change | `ddd-plan` |
 
-觸發 `ddd-plan` 的關鍵字（直接路由）：「幫我計劃」「規劃一下」「分階段規劃」「PXX」
-
----
-
-### `/ddd-doc` — 起草與維護文檔
-
-**編碼前：** 讀 `CONTEXT.md` → 確認需求清晰度 → 起草文檔（含驗收標準與測試場景）→ 交你審查。
-
-**編碼後：** 更新實作記錄 → 審計模組文檔 → 詢問是否有架構技術債。
-
-每份文檔包含：用戶故事、Given/When/Then 驗收標準、測試場景表、實作說明、**實作記錄**（完成後填入）。
+Keywords that trigger `ddd-plan` directly: "help me plan," "let's plan this out," "phase-by-phase plan," "PXX"
 
 ---
 
-### `/ddd-tdd` — 依文檔實作
+### `/ddd-doc` — Draft and maintain documents
 
-**前提：必須有你核准的 FXX / RXX / BXX，否則停止。**
+**Before coding:** read `CONTEXT.md` → confirm requirement clarity → draft the document (including acceptance criteria and test scenarios) → hand to you for review.
 
-1. 讀文檔，提取驗收標準
-2. **紅燈**：寫最小失敗測試，確認失敗
-3. 若測試意外失敗 → 進 `diagnose` 結構化除錯，根因寫回文檔
-4. **綠燈**：實作最小生產代碼
-5. **驗收**：確認每個驗收標準都有測試覆蓋
-6. 將實作記錄寫回文檔
+**After coding:** update the implementation record → audit module documents → ask whether any architectural technical debt was identified.
+
+Each document contains: user story, Given/When/Then acceptance criteria, test scenario table, implementation notes, and an **implementation record** (filled in after completion).
 
 ---
 
-### `/ddd-debug-trace` — 硬 bug 自主排查
+### `/ddd-tdd` — Implement from the document
 
-針對**根因未明、要多輪實驗才能收斂**的 bug。把整段排查軌跡持久化成 `documents/bugs/BUG-XX.md`，讓每次接手的 AI 都從上次收斂的位置繼續，而不是每次重新往相同地方找錯。**一個 bug 反覆找不到根因、或可能跨 session／換 agent 接手時使用。**
+**Prerequisite: an approved FXX / RXX / BXX must exist — otherwise stop.**
 
-**與 BXX 的差別：** BXX 是「已經知道要改哪裡」的修正規格；`ddd-debug-trace` 是「還不知道根因」的調查史。
-
-**運作方式：**
-1. 掃描 `documents/bugs/`：有既有文件先讀置頂「狀態快照」載入收斂結果；沒有就用 `grill-me` 逼出精確症狀、重現與帶基準值的完成條件，建立 BUG-XX 文件
-2. 從乾淨 working tree 開始，自主循環：**宣告實驗 → 改 → 測量指標 → 判斷**，每步即時寫回文件
-3. **部分改善**立刻 commit 作為新基準點；**退步/無變化**則 `git restore` 並把該範圍寫入「已排除」
-4. 已排除範圍與已確認事實**只進不退**，不重複調查
-5. 收斂到 `resolved` 後，交棒 `ddd-doc` 把根因＋修法＋回歸測試落成一份 BXX，並雙向連結
-
-文件持續維護的內容：狀態快照、錯誤指紋、已確認事實、已排除/可疑點、當前假說、逐次實驗紀錄。
-
-> 也可從 `ddd-tdd` 中途升級進來：本以為是簡單 bug 走了 BXX，結果紅燈一直查不出、`diagnose` 也卡住時，升級到 `ddd-debug-trace`。
+1. Read the document and extract acceptance criteria
+2. **Red:** write the minimal failing test and confirm it fails
+3. If a test fails unexpectedly → enter `diagnose` for structured debugging, write the root cause back into the document
+4. **Green:** implement the minimal production code
+5. **Acceptance:** confirm every acceptance criterion has test coverage
+6. Write the implementation record back into the document
 
 ---
 
-### `/ddd-plan` — 大型改動規劃
+### `/ddd-debug-trace` — Investigate hard bugs autonomously
 
-將多階段需求拆成有序的執行計劃，起草 PXX 規劃書，每個階段對應一份 F/R/B 文檔。
+Use this for bugs whose root cause is unknown and requires multiple experiments to isolate. It persists the investigation in `documents/bugs/BUG-XX.md`, so each AI session resumes from the latest converged state instead of repeating earlier work.
 
-**何時用：** 需求橫跨多個模組、後期細節依賴前期結果、或階段切分需要你審查。
+**Difference from BXX:** BXX specifies a fix when the change location is already understood. `ddd-debug-trace` records the investigation while the root cause is still unknown.
 
-**PXX 核准後逐階段執行：**
+**How it works:**
+1. Scan `documents/bugs/`; resume an existing trace from its status snapshot, or use `grill-me` to establish precise symptoms, reproduction steps, and measurable completion criteria before creating a BUG-XX document
+2. Start from a clean working tree and iterate: **declare experiment → change → measure → decide**, writing each result back immediately
+3. Commit partial improvements as new baselines; restore regressions or no-op changes and record those areas as eliminated
+4. Treat confirmed facts and eliminated areas as monotonic knowledge; do not reinvestigate them without contradictory evidence
+5. When resolved, hand off to `ddd-doc` to create a BXX containing the root cause, fix, and regression tests, with links in both directions
+
+It can also be entered from `ddd-tdd` when an apparently simple BXX stalls and `diagnose` cannot identify the root cause.
+
+---
+
+### `/ddd-plan` — Plan large-scale changes
+
+Breaks multi-phase requirements into an ordered execution plan, drafts a PXX planning document, with each phase corresponding to one F/R/B document.
+
+**When to use:** the requirement spans multiple modules, later details depend on earlier results, or the phase breakdown itself needs your review.
+
+**After PXX is approved, execute phase by phase:**
 ```
-你說「繼續 PXX」→ AI 找最靠前未開始的階段 → 起草 F/R/B
-→ 你核准 → ddd-tdd 實作 → 回填 PXX 狀態 → 重複直到完成
-```
-
-**範例：電商後台權限系統改版**
-
-你說：「我要把後台的權限系統從角色制改成資源制，同時重構舊 admin API，最後做審核流程 UI。幫我規劃一下。」
-
-AI 起草 `documents/planning/P01-permission-refactor.md`：
-
-```
-P01 — 後台權限系統改版
-
-階段 1：重構舊 admin API（RXX）
-  你的驗收方式：用現有帳號登入後台，所有功能正常，無回歸錯誤
-  狀態：未開始
-
-階段 2：實作資源制權限模型（FXX）
-  你的驗收方式：可在後台設定「誰能對哪個資源做什麼動作」
-  依賴：階段 1 完成
-  狀態：未開始
-
-階段 3：審核流程 UI（FXX）
-  你的驗收方式：能看到待審核清單，點擊可核准或駁回並即時反映
-  依賴：階段 2 完成
-  狀態：未開始
+You say "continue PXX" → AI finds the earliest unstarted phase → drafts F/R/B
+→ you approve → ddd-tdd implements → backfill PXX status → repeat until done
 ```
 
-你核准後，每次一個階段：
+**Example: E-commerce admin permission system overhaul**
+
+You say: "I want to migrate the admin permission system from role-based to resource-based, refactor the old admin API at the same time, and finally build the review workflow UI. Help me plan this."
+
+AI drafts `documents/planning/P01-permission-refactor.md`:
+
 ```
-「請繼續 P01，推進下一個階段。」
-→ AI 起草 R01 → 你核准 → ddd-tdd 實作 → 回填 P01
+P01 — Admin Permission System Overhaul
+
+Phase 1: Refactor old admin API (RXX)
+  Your acceptance: log in with an existing account, all features work, no regressions
+  Status: not started
+
+Phase 2: Implement resource-based permission model (FXX)
+  Your acceptance: can configure "who can do what action on which resource" in the admin panel
+  Depends on: Phase 1 complete
+  Status: not started
+
+Phase 3: Review workflow UI (FXX)
+  Your acceptance: can see the pending review list, click to approve or reject with immediate feedback
+  Depends on: Phase 2 complete
+  Status: not started
+```
+
+After you approve, one phase at a time:
+```
+"Please continue P01 and advance to the next phase."
+→ AI drafts R01 → you approve → ddd-tdd implements → backfill P01
 ```
 
 ---
 
-### `/ddd-queue` — 批次自動執行
+### `/ddd-queue` — Batch automated execution
 
-讓 2-5 個已排序工作由 AI 逐一完成，每個 item 使用新 session，完成後獨立 commit。**想減少被打斷、讓 AI 連續工作時使用。**
+Lets AI complete 2–5 ordered tasks one by one, each item in a new session, with an independent commit after each. **Use this when you want fewer interruptions and continuous AI execution.**
 
-**執行流程：**
-1. 建立 QXX 文檔
-2. 集中用 `grill-me` 一次釐清所有 item 的需求、驗收方式、停止條件
-3. 你確認 QXX 後允許執行
-4. AI 每個 item 開新 session，走 `ddd-start → ddd-doc → ddd-tdd`，完成後 commit
-5. 遇到 blocked 立即停止並通知你
+**Execution flow:**
+1. Create the QXX document
+2. Use `grill-me` in one focused session to clarify all items' requirements, acceptance criteria, and stop conditions
+3. You confirm the QXX and allow execution
+4. AI opens a new session per item, runs `ddd-start → ddd-doc → ddd-tdd`, and commits after completion
+5. If blocked, stop immediately and notify you
 
-**範例一：三個獨立 Bug 修正**
+**Example 1: Three independent bug fixes**
 
-你說：「我有三個 Bug 要修，需求都清楚了，排成 queue 一次跑完，blocked 寄信通知我。」
+You say: "I have three bugs to fix, requirements are all clear — queue them up and run through them, email me if blocked."
 
-AI 建立 `documents/queue/Q01-bug-fixes.md`：
+AI creates `documents/queue/Q01-bug-fixes.md`:
 
 ```yaml
 batch_limit: 3
@@ -231,113 +229,114 @@ notify_email_to: you@example.com
 
 items:
   - id: Q01-01
-    title: 修正登入頁重複提交問題
+    title: Fix duplicate submission on login page
     type: BXX
     clarification_status: clarified
-    acceptance: 快速點擊登入按鈕兩次，只送出一次請求
+    acceptance: Clicking the login button twice quickly sends only one request
 
   - id: Q01-02
-    title: 修正訂單列表金額顯示錯誤
+    title: Fix incorrect amount display in order list
     type: BXX
     clarification_status: clarified
-    acceptance: 訂單列表顯示的金額與訂單詳情頁一致
+    acceptance: Amount shown in order list matches the order detail page
 
   - id: Q01-03
-    title: 修正使用者頭像上傳後不刷新
+    title: Fix user avatar not refreshing after upload
     type: BXX
     clarification_status: clarified
-    acceptance: 上傳頭像後頁面立即更新，不需重整
+    acceptance: Page updates immediately after avatar upload without requiring a reload
 ```
 
-執行順序：
+Execution order:
 ```
-Q01-01：新 session → ddd-doc BXX → ddd-tdd → git commit → 停止
-Q01-02：新 session → ddd-doc BXX → ddd-tdd → git commit → 停止
-Q01-03：新 session → ddd-doc BXX → ddd-tdd → git commit → 停止
-→ 整批完成，寄信通知你
+Q01-01: new session → ddd-doc BXX → ddd-tdd → git commit → stop
+Q01-02: new session → ddd-doc BXX → ddd-tdd → git commit → stop
+Q01-03: new session → ddd-doc BXX → ddd-tdd → git commit → stop
+→ entire batch complete, send email notification
 ```
 
-**範例二：有依賴關係的 Queue**
+**Example 2: Queue with dependencies**
 
-你說：「先做用戶標籤功能，再做根據標籤篩選的搜尋，完成後通知我。」
+You say: "Build the user tagging feature first, then build the tag-based search filter. Notify me when done."
 
 ```yaml
 items:
   - id: Q01-01
-    title: 用戶標籤功能
+    title: User tagging feature
     type: FXX
     clarification_status: clarified
-    acceptance: 可對用戶新增/刪除標籤，重整後仍存在
+    acceptance: Can add/remove tags on a user; tags persist after page reload
 
   - id: Q01-02
-    title: 依標籤篩選用戶搜尋
+    title: Filter user search by tag
     type: FXX
     depends_on: Q01-01
-    unlock_condition: Q01-01 完成且標籤 API 可用
+    unlock_condition: Q01-01 complete and tag API available
     clarification_status: clarified
-    acceptance: 搜尋頁可選擇標籤篩選，結果只顯示有該標籤的用戶
+    acceptance: Search page allows selecting a tag filter; results show only users with that tag
 ```
 
-Q01-01 完成並 commit 後，AI 自動解鎖 Q01-02 繼續。
+After Q01-01 completes and is committed, AI automatically unlocks Q01-02 and continues.
 
 ---
 
-### `/ddd-email-notify` — 通知設定
+### `/ddd-email-notify` — Notification settings
 
-查看或設定 blocked / completed 時的寄信通知。
+View or configure email notifications for blocked or completed events.
 
-| 事件 | 是否寄信 |
+| Event | Send email |
 |---|---|
-| `/ddd-tdd` 單次完成 | ✓ |
-| Queue 單個 item 完成 | ✗（由整批統一處理） |
-| Queue 整批完成 | ✓ |
-| Queue blocked | ✓ |
+| `/ddd-tdd` single completion | Yes |
+| Queue single item completion | No (handled by batch summary) |
+| Queue entire batch complete | Yes |
+| Queue blocked | Yes |
 
-設定位置：`documents/ddd-email-notify.md`（專案層）或 QXX frontmatter（單一 queue）。
+Configuration location: `documents/ddd-email-notify.md` (project level) or QXX frontmatter (per queue).
 
 ---
 
-## 輔助指令
+## Supporting Commands
 
-| 指令 | 用途 | 典型使用時機 |
+| Command | Purpose | Typical use case |
 |---|---|---|
-| `/grill-me` | 深挖真實需求，逐一提問釐清邊界 | 需求模糊，無法寫出驗收條件 |
-| `/grill-with-docs` | 對照現有領域模型驗證計劃 | 新功能涉及修改現有模組 |
-| `/diagnose` | 結構化除錯：重現 → 假設 → 修復 → 回歸測試 | 測試意外失敗，原因不明 |
-| `/zoom-out` | 繪製模組地圖，確認重構範疇 | 啟動重構前確認影響邊界 |
-| `/handoff` | 將當前對話壓縮為交棒文件 | 長時間實作，需要切換 session |
-| `/prototype` | 建立一次性原型驗證設計方向 | 高度不確定的功能，提交 FXX 前 |
-| `/improve-codebase-architecture` | 尋找架構深化機會，輸出 RXX 候選 | 實作後發現技術債 |
-| `/caveman` | 切換超精簡溝通模式，減少 token | 文檔審查反覆確認措辭時 |
-| `/git-guardrails` | 阻止危險 git 指令 | 實作期間的安全保護 |
+| `/grill-me` | Surface the real requirement by asking questions one by one to clarify boundaries | Requirement is vague and acceptance criteria cannot be written |
+| `/grill-with-docs` | Validate the plan against the existing domain model | New feature requires modifying an existing module |
+| `/diagnose` | Structured debugging: reproduce → hypothesize → fix → regression test | Test fails unexpectedly and the cause is unknown |
+| `/ddd-debug-trace` | Persist a hard-bug investigation across experiments and sessions | Root cause remains unknown after initial diagnosis |
+| `/zoom-out` | Draw a module map to confirm refactor scope | Confirm impact boundaries before starting a refactor |
+| `/handoff` | Compress the current conversation into a handoff document | Long implementation session that needs to switch to a new session |
+| `/prototype` | Build a throwaway prototype to validate a design direction | Highly uncertain feature, before committing to an FXX |
+| `/improve-codebase-architecture` | Find opportunities to deepen architecture, output RXX candidates | Technical debt discovered after implementation |
+| `/caveman` | Switch to ultra-minimal communication mode to reduce tokens | Repeated wording clarifications during document review |
+| `/git-guardrails` | Block dangerous git commands | Safety protection during implementation |
 
 ---
 
-## 文檔類別
+## Document Types
 
-| 前綴 | 類型 | 存放位置 | 使用時機 |
+| Prefix | Type | Location | When to use |
 |---|---|---|---|
-| `FXX` | 功能規格 | `documents/implements/` | 新功能 |
-| `RXX` | 重構規格 | `documents/implements/` | 不改變行為的結構改善 |
-| `BXX` | Bug 修正規格 | `documents/implements/` | 重現並修正缺陷 |
-| `PXX` | 多階段規劃書 | `documents/planning/` | 橫跨多模組的大型改動 |
-| `QXX` | 工作佇列 | `documents/queue/` | 2-5 個可自動推進的工作 |
-| `BUG-XX` | Bug 排查軌跡 | `documents/bugs/` | 根因未明、需多輪實驗收斂的硬 bug（收斂後落成 BXX） |
-| `GXX` | 操作指南 | `documents/guides/` | 執行測試、打包等操作說明 |
+| `FXX` | Feature spec | `documents/implements/` | New features |
+| `RXX` | Refactor spec | `documents/implements/` | Structural improvements that do not change behavior |
+| `BXX` | Bug fix spec | `documents/implements/` | Reproduce and fix a defect |
+| `PXX` | Multi-phase plan | `documents/planning/` | Large-scale changes spanning multiple modules |
+| `QXX` | Work queue | `documents/queue/` | 2–5 tasks that can be auto-advanced |
+| `BUG-XX` | Bug investigation trace | `documents/bugs/` | Hard bugs requiring multiple experiments; produces a BXX after resolution |
+| `GXX` | Operation guide | `documents/guides/` | Instructions for running tests, packaging builds, etc. |
 
-模組文檔（`documents/modules/`）：高層次描述現有模組的職責、邊界、依賴與已知限制。隨代碼同步更新，代碼與文檔衝突時以代碼為準。
+Module documents (`documents/modules/`): high-level descriptions of an existing module's responsibilities, boundaries, dependencies, and known limitations. Updated in sync with code; when code and document conflict, the code takes precedence.
 
 ---
 
-## 常見情境速查
+## Quick Reference by Scenario
 
-| 情境 | 指令 |
+| Scenario | Command |
 |---|---|
-| 新功能 | `/ddd-start` → 描述需求 → 核准 FXX → `/ddd-tdd` |
-| 需求模糊 | `/ddd-start` → AI 自動 grill-me → 收斂後進 ddd-doc |
-| 發現 Bug（知道要改哪） | `/ddd-start` → 描述現象與重現步驟 → 核准 BXX → `/ddd-tdd` |
-| 硬 Bug（根因找不到） | `/ddd-start` → `/ddd-debug-trace` → 自主排查收斂 → 落成 BXX |
-| 重構 | `/ddd-start` → zoom-out 確認範疇 → 核准 RXX → `/ddd-tdd` |
-| 多個工作批次完成 | `/ddd-start` → ddd-queue → 確認 QXX → 自動執行 |
-| 大型分階段改動 | `/ddd-start` → 說「幫我規劃」→ 核准 PXX → 逐階段執行 |
-| 新專案導入 DDD | `/ddd-create-folder` → 填 CONTEXT.md → `/ddd-start` |
+| New feature | `/ddd-start` → describe requirement → approve FXX → `/ddd-tdd` |
+| Vague requirement | `/ddd-start` → AI runs grill-me automatically → enter ddd-doc after converging |
+| Bug discovered (root cause known) | `/ddd-start` → describe the symptom and reproduction steps → approve BXX → `/ddd-tdd` |
+| Hard bug (root cause unknown) | `/ddd-start` → `/ddd-debug-trace` → investigate until resolved → create BXX |
+| Refactor | `/ddd-start` → zoom-out to confirm scope → approve RXX → `/ddd-tdd` |
+| Multiple items in batch | `/ddd-start` → ddd-queue → confirm QXX → auto-execute |
+| Large multi-phase change | `/ddd-start` → say "help me plan" → approve PXX → execute phase by phase |
+| Introducing DDD to a new project | `/ddd-create-folder` → fill in CONTEXT.md → `/ddd-start` |

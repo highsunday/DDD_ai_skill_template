@@ -1,112 +1,112 @@
 ---
-author: <作者>
+author: <author>
 date: <YYYY-MM-DD>
-title: <一句話說明此次大型改動>
+title: <one-line description of this large-scale change>
 uuid: e6de64dedf57426ea39eac7ffa2dc451
 version: 1.0
 status: draft
 ---
 
-# 規劃書 – XXX 大型改動
+# Planning Document – XXX Large-Scale Change
 
-## 1. 背景與動機 (Background & Motivation)
+## 1. Background & Motivation
 
-說明為什麼需要這次大型改動，包含目前遇到的問題、商業動機或技術驅動力。
+Describe why this large-scale change is needed, including the current problems, business motivation, or technical drivers.
 
-## 2. 總體目標 (Overall Goal)
+## 2. Overall Goal
 
-用使用者的語言描述：當所有階段完成後，使用者能看到或體驗到什麼不同？
+Describe in the user's language: when all phases are complete, what will the user see or experience differently?
 
-> 例如：使用者能夠透過新的身份驗證流程登入，並在儀表板上即時查看同步後的資料。
+> Example: Users will be able to log in through a new authentication flow and view synchronized data in real time on the dashboard.
 
-## 3. 影響範圍 (Scope & Impact)
+## 3. Scope & Impact
 
-列出此次改動預計影響的模組或功能區域，供後續 AI 起草 F/R/B 文件時參考。
+List the modules or functional areas this change is expected to affect, for reference when AI later drafts F/R/B documents.
 
-| 受影響模組 / 功能 | 預計改動類型          | 備註 |
-|----------------|---------------------|------|
-| <模組名稱>      | 新增功能 / 重構 / 修正 |      |
+| Affected module / feature | Expected change type              | Notes |
+|---------------------------|-----------------------------------|-------|
+| <module name>             | New feature / Refactor / Bug fix  |       |
 
-## 4. 各階段計劃 (Phase Plan)
+## 4. Phase Plan
 
-### 總覽
+### Overview
 
-| 階段 | 名稱       | 建議文檔類型 | 關聯文檔 | 狀態       |
-|------|-----------|------------|--------|-----------|
-| P1   | <階段名稱> | FXX        | —      | [ ] 未開始 |
-| P2   | <階段名稱> | RXX        | —      | [ ] 未開始 |
-| P3   | <階段名稱> | BXX        | —      | [ ] 未開始 |
-
----
-
-### 階段 1 — <階段名稱>
-
-**描述**
-說明此階段要完成什麼，包含技術方向與邏輯邊界。
-
-**使用者確認方式**
-此階段完成後，使用者應執行以下操作來確認成果：
-- [ ] <具體操作，例如「在登入頁面輸入帳密並成功進入儀表板」>
-- [ ] <另一個確認動作，例如「點擊「忘記密碼」後收到重設信件」>
-
-**建議文檔類型**：`FXX`（功能規格）
-
-**關聯文檔**：—（執行後填入，例如 `F01-xxx.md`）
-
-**狀態**：`[ ] 未開始`
+| Phase | Name           | Suggested doc type | Related doc | Status      |
+|-------|----------------|-------------------|-------------|-------------|
+| P1    | <phase name>   | FXX               | —           | [ ] Not started |
+| P2    | <phase name>   | RXX               | —           | [ ] Not started |
+| P3    | <phase name>   | BXX               | —           | [ ] Not started |
 
 ---
 
-### 階段 2 — <階段名稱>
+### Phase 1 — <phase name>
 
-**描述**
-說明此階段要完成什麼。
+**Description**
+Describe what this phase will accomplish, including the technical direction and logical boundaries.
 
-**使用者確認方式**
-- [ ] <具體操作>
-- [ ] <另一個確認動作>
+**User acceptance actions**
+After this phase is complete, the user should perform the following to confirm the outcome:
+- [ ] <specific action, e.g. "enter credentials on the login page and successfully reach the dashboard">
+- [ ] <another confirmation action, e.g. "click 'Forgot password' and receive a reset email">
 
-**建議文檔類型**：`RXX`（重構規格）
+**Suggested doc type**: `FXX` (feature spec)
 
-**關聯文檔**：—
+**Related doc**: — (fill in after execution, e.g. `F01-xxx.md`)
 
-**狀態**：`[ ] 未開始`
-
----
-
-### 階段 3 — <階段名稱>
-
-**描述**
-說明此階段要完成什麼。
-
-**使用者確認方式**
-- [ ] <具體操作>
-- [ ] <另一個確認動作>
-
-**建議文檔類型**：`BXX`（Bug 修正）
-
-**關聯文檔**：—
-
-**狀態**：`[ ] 未開始`
+**Status**: `[ ] Not started`
 
 ---
 
-## 5. 接棒說明（AI 指引）
+### Phase 2 — <phase name>
 
-> 本節為接棒 AI 的執行指引。
+**Description**
+Describe what this phase will accomplish.
 
-接棒 AI 在開始工作前，請依序執行：
+**User acceptance actions**
+- [ ] <specific action>
+- [ ] <another confirmation action>
 
-1. 閱讀「總體目標」與「各階段計劃」，掌握整體方向。
-2. 確認當前應執行的階段：優先選擇狀態為 `[~] 進行中` 的階段；若無，選擇最靠前的 `[ ] 未開始` 階段。
-3. 將該階段狀態改為 `[~] 進行中`，並更新總覽表格。
-4. 根據「建議文檔類型」呼叫 `ddd-doc` 起草對應的 FXX / RXX / BXX 文件。
-5. 人類審查核准後，執行 `ddd-tdd` 進行實作。
-6. 實作完成後：
-   - 「關聯文檔」欄填入實際文件編號（例如 `F01-auth-login.md`）
-   - 階段狀態改為 `[x] 已完成`，同步更新總覽表格
-7. 確認下一個未開始的階段，重複以上流程；所有階段完成後將本文件 `status` 改為 `completed`。
+**Suggested doc type**: `RXX` (refactor spec)
 
-> 若某階段的範疇不夠明確，起草 FXX / RXX / BXX 之前先執行 `grill-me` 深挖需求。
+**Related doc**: —
 
-## 6. 補充說明 (Additional Notes)
+**Status**: `[ ] Not started`
+
+---
+
+### Phase 3 — <phase name>
+
+**Description**
+Describe what this phase will accomplish.
+
+**User acceptance actions**
+- [ ] <specific action>
+- [ ] <another confirmation action>
+
+**Suggested doc type**: `BXX` (bug fix)
+
+**Related doc**: —
+
+**Status**: `[ ] Not started`
+
+---
+
+## 5. Handoff Instructions (AI guidance)
+
+> This section is execution guidance for the handoff AI.
+
+Before starting work, the handoff AI must:
+
+1. Read "Overall Goal" and "Phase Plan" to understand the overall direction.
+2. Identify the current phase to execute: prioritize any phase with status `[~] In progress`; if none, select the earliest `[ ] Not started` phase.
+3. Change that phase's status to `[~] In progress` and update the overview table.
+4. Based on the "Suggested doc type", call `ddd-doc` to draft the corresponding FXX / RXX / BXX document.
+5. After the user reviews and approves, run `ddd-tdd` to implement.
+6. After implementation is complete:
+   - Fill in the "Related doc" field with the actual document number (e.g. `F01-auth-login.md`)
+   - Change phase status to `[x] Completed` and update the overview table
+7. Identify the next unstarted phase and repeat the above; when all phases are done, change this document's `status` to `completed`.
+
+> If a phase's scope is not clear enough, run `grill-me` to elicit requirements before drafting FXX / RXX / BXX.
+
+## 6. Additional Notes

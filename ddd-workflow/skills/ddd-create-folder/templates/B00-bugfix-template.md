@@ -1,78 +1,81 @@
 ---
-author: <作者>
-date: <文件日期>
-title: <簡短描述此次 Bug 修正，例如「修正登入錯誤訊息顯示不正確」>
+author: <author>
+date: <document date>
+title: <short description of this bug fix, e.g. "Fix incorrect error message on login">
 uuid: 254b01ad373d4a19a7d0464e4a60a655
-version: <版本號>
+version: <version>
 ---
-# Bug 修正：XXX
+# Bug Fix: XXX
 
-## 1. 問題概述 (Bug Overview)
+## 1. Bug Overview
 
-簡要說明此錯誤的背景、使用者影響，以及目前系統出現的錯誤行為。
-例如：目前當使用者輸入錯誤密碼時，系統未正確顯示錯誤提示訊息，造成使用者困惑。
+Briefly describe the background of the bug, its impact on users, and the incorrect behavior currently observed in the system.
+Example: Currently, when a user enters an incorrect password, the system does not display an error message, leaving the user confused.
 
-## 2. 修正目標 (Fix Objective)
+## 2. Fix Objective
 
-說明此次修正的目標與預期行為。
-例如：系統應於使用者密碼錯誤時，明確顯示「密碼錯誤」提示訊息，不進入系統。
+Describe the goal of this fix and the expected behavior after it is applied.
+Example: The system should clearly display a "Wrong password" message when a user enters an incorrect password, without logging them in.
 
-## 3. 驗收準則 (Acceptance Criteria)
+## 3. Acceptance Criteria
 
-使用「Given-When-Then」格式撰寫，明確列出修正後應具備的正確行為：
+Written in Given-When-Then format. Clearly lists the correct behavior that must exist after the fix:
 
-- **Scenario 1:** <描述此情境，例如「錯誤密碼顯示提示」>
+- **Scenario 1:** <describe this scenario, e.g. "Wrong password shows error message">
 
-  - **Given** 使用者帳號存在
-  - **When** 輸入錯誤密碼並送出登入
-  - **Then** 顯示「密碼錯誤」提示，不導向首頁
-- **Scenario 2:** <錯誤訊息應不洩漏帳號是否存在>
+  - **Given** the user account exists
+  - **When** the user submits an incorrect password
+  - **Then** "Wrong password" is displayed; the user is not redirected to the home page
 
-  - **Given** 任意不存在帳號
-  - **When** 輸入帳號與密碼並送出
-  - **Then** 顯示通用錯誤訊息「帳號或密碼錯誤」
+- **Scenario 2:** <Error message must not reveal whether the account exists>
 
-## 4. 測試情境 (Test Scenarios / Examples)
+  - **Given** any non-existent account
+  - **When** the user submits credentials
+  - **Then** a generic "Invalid username or password" message is shown
 
+## 4. Test Scenarios
 
-| ID  | Scenario             | Given          | When         | Then                           | Priority |
-| ----- | ---------------------- | ---------------- | -------------- | -------------------------------- | ---------- |
-| TC1 | 輸入錯誤密碼顯示提示 | 使用者帳號存在 | 輸入錯誤密碼 | 顯示「密碼錯誤」，不導向首頁   | High     |
-| TC2 | 非存在帳號不洩漏資訊 | 帳號不存在     | 輸入任意帳密 | 顯示「帳號或密碼錯誤」通用訊息 | Medium   |
+| ID  | Scenario                        | Given              | When                   | Then                                      | Priority |
+|-----|---------------------------------|--------------------|------------------------|-------------------------------------------|----------|
+| TC1 | Wrong password shows error      | User account exists | Enters wrong password  | "Wrong password" shown; no redirect       | High     |
+| TC2 | Non-existent account leaks no info | Account does not exist | Enters any credentials | Generic "Invalid username or password" shown | Medium |
 
-## 5. 修正實作註記 (Implementation Notes)
+## 5. Implementation Notes
 
-- **錯誤處理調整**：統一錯誤訊息為「帳號或密碼錯誤」，避免洩漏帳號存在與否。
-- **前端提示邏輯**：應根據回傳訊息判斷提示內容，不應依 status code 判斷帳號狀態。
-- **API 回應格式**：
+- **Error handling**: Unify error message to "Invalid username or password" to avoid leaking account existence.
+- **Frontend prompt logic**: Determine prompt content based on the response message, not the status code.
+- **API response format**:
   - `POST /api/login`
     - Request: `{ "email": "string", "password": "string" }`
-    - Response: `{ "status": "error", "message": "帳號或密碼錯誤" }`
+    - Response: `{ "status": "error", "message": "Invalid username or password" }`
 
-## 6. 補充說明 (Additional Notes)
+## 6. Additional Notes
 
 
-## 附錄：TDD 修正流程提醒 (TDD Fix Workflow)
+## Appendix: TDD Fix Workflow
 
-請依照以下流程執行 Bug 修正，以確保修復品質並保持系統穩定：
+Follow this process when fixing the bug to ensure fix quality and maintain system stability:
 
-1. **撰寫錯誤再現測試（紅燈）**
+1. **Write a reproduction test (red)**
 
-   * 在修正前，建立測試案例模擬錯誤情境，確認現有邏輯無法通過該測試（呈現紅燈）。
-   * 測試範例應涵蓋錯誤訊息內容、錯誤代碼、UI 顯示等層面。
-   * 目的為驗證錯誤確實存在，並作為修正成效的依據。
-2. **實作最小必要修正通過測試（綠燈）**
+   * Before fixing, create a test case that reproduces the bug scenario. Confirm that existing logic fails this test (red light).
+   * Tests should cover error message content, error codes, and UI display.
+   * The goal is to verify that the bug exists and to serve as evidence of the fix.
 
-   * 僅實作足以通過錯誤再現測試的最小修正內容。
-   * 避免一次修改多處未確認相關邏輯，以降低引入新錯誤的風險。
-   * 修正應對應至明確需求變更，例如調整錯誤訊息或驗證流程。
-3. **重構與測試完整性檢查**
+2. **Implement the minimal fix to pass the test (green)**
 
-   * 測試通過後，檢查相關邏輯是否能進行重構或統一（如將錯誤處理集中化）。
-   * 檢查是否需增加邊界測試、例外處理測試、或修正測試資料不一致問題。
-   * 所有自動化測試（單元、整合、端對端）應無誤通過。
-4. **更新文件與錯誤回報記錄**
+   * Only implement the minimum change required to pass the reproduction test.
+   * Avoid changing multiple unrelated areas at once, to reduce the risk of introducing new bugs.
+   * The fix should correspond to a clear requirement change, such as adjusting an error message or validation flow.
 
-   * 將修正行為記錄於本需求文件與版本控制記錄中，包含錯誤代碼、修正時間與作者。
-   * 若有錯誤回報系統（如 Jira、GitHub Issue），應更新狀態並回覆處理結果與驗證方式。
-   * 如錯誤涉及使用者行為或 UI 改變，應同步通知相關團隊或準備對外公告內容
+3. **Refactor and verify test completeness**
+
+   * After tests pass, check whether related logic can be refactored or consolidated (e.g. centralizing error handling).
+   * Check whether boundary tests, exception handling tests, or inconsistent test data need to be added.
+   * All automated tests (unit, integration, end-to-end) should pass without errors.
+
+4. **Update documentation and bug report records**
+
+   * Record the fix behavior in this spec document and in version control, including the error code, fix date, and author.
+   * If there is a bug tracking system (e.g. Jira, GitHub Issues), update the status and reply with the resolution and verification method.
+   * If the bug involves user-facing behavior or UI changes, notify relevant teams or prepare release notes accordingly.

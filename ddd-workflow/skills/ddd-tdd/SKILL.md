@@ -1,277 +1,277 @@
 ---
 name: ddd-tdd
-description: DDD 強化版實作技能。由已核准的 FXX / RXX / BXX 文檔驅動，執行紅燈→綠燈→驗收的 TDD 循環。在測試意外失敗時整合 diagnose 結構化除錯，在綠燈後浮現架構觀察。當需要實作功能、重構或修正 Bug 時使用。
+description: DDD enhanced implementation skill. Driven by approved FXX / RXX / BXX documents, executes the red→green→acceptance TDD cycle. Integrates diagnose structured debugging when tests fail unexpectedly, and surfaces architectural observations after going green. Use when implementing features, refactoring, or fixing bugs.
 ---
 
 # DDD TDD
 
-所有生產代碼變更的執行引擎。由已核准的實作文檔驅動，不接受模糊的聊天指令作為需求來源。
+The execution engine for all production code changes. Driven by approved implementation documents; does not accept vague chat instructions as a requirements source.
 
-## 核心規則
+## Core rules
 
-**沒有已核准的文檔，就沒有代碼。**
+**No approved document, no code.**
 
-若未提供 FXX/RXX/BXX 文檔，停止並說：「請先提供對應的實作文檔，或執行 `/ddd-doc` 建立一份。」
+If no FXX/RXX/BXX document is provided, stop and say: "Please provide the corresponding implementation document first, or run `/ddd-doc` to create one."
 
-**完成通知規則：**
+**Completion notification rules:**
 
-- `/ddd-tdd` 單獨完成一份 FXX/RXX/BXX 實作時，依 `ddd-email-notify` 寄出 completed 通知。
-- 若 `/ddd-tdd` 是由 `/ddd-queue` worker 呼叫，完成時不得寄單項完成通知；只更新 queue item 與 ledger，由 `/ddd-queue` 在整批全部完成時寄一次 completed 通知。
-- 判斷自己是否在 queue worker 內：prompt 或上下文含有 Queue file / Item id / `你是 DDD queue worker`，或正在更新 QXX item 狀態時，視為 queue worker。
-- 若通知設定缺少 `notify_email_from` / `notify_email_to`、寄信工具不可用、或寄件來源無法驗證，在最終回報中說明未寄信，但不要回滾已完成的實作。
-
----
-
-## 實作流程
-
-### 前置 — 載入上下文
-
-**1. 讀取 CONTEXT.md**
-若根目錄存在 `CONTEXT.md`，讀取並記住術語表。後續所有測試命名、行為描述、程式碼註解中的領域術語，必須與 `CONTEXT.md` 一致。若測試描述使用了不在詞彙表中的術語，先確認該術語定義正確再繼續。
-
-**2. 讀取實作文檔**
-閱讀並理解提供的 FXX/RXX/BXX 文檔。從中提取：
-- 功能目標與用戶故事
-- 業務規則與邊界條件
-- 驗收標準（逐條列出）
-- 測試場景表（ID、Given、When、Then）
-- 非目標與已知限制
-
-若文檔包含模糊性、衝突或缺漏，**在實作前**提出並要求澄清。若使用者明確要求帶著假設繼續，記錄假設後繼續，並在實作記錄中標注。
-
-**3. 檢查程式碼庫**
-識別：
-- 語言、框架、套件管理器
-- 測試框架與測試執行命令
-- 現有測試風格與命名慣例
-- 相關的生產代碼與測試檔案
+- When `/ddd-tdd` completes a single FXX/RXX/BXX implementation standalone, send a completed notification via `ddd-email-notify`.
+- If `/ddd-tdd` is called by a `/ddd-queue` worker, do NOT send a per-item completion notification upon finishing; only update the queue item and ledger. `/ddd-queue` sends one completed notification when the entire batch is done.
+- To determine whether running inside a queue worker: if the prompt or context contains a Queue file / Item id / `you are a DDD queue worker`, or you are updating a QXX item status, treat yourself as a queue worker.
+- If notification config is missing `notify_email_from` / `notify_email_to`, the email tool is unavailable, or the sender cannot be verified, report that no email was sent in the final summary but do NOT roll back the completed implementation.
 
 ---
 
-### 紅燈階段
+## Implementation flow
 
-**目標：在實作任何代碼之前，先有一個因正確原因失敗的測試。**
+### Prerequisites — Load context
 
-1. 將文檔中的測試場景對應到具體的自動化測試
-2. 為每個測試案例識別：
-   - 關聯的驗收標準或業務規則
-   - 受測行為
-   - 所需的輸入條件
-   - 預期的輸出或狀態變化
-3. 撰寫最小的失敗測試（從優先級最高的測試場景開始）
-4. 只執行目標測試，確認失敗
-5. 確認失敗原因是「功能尚未實作」，而非其他問題
+**1. Read CONTEXT.md**
+If `CONTEXT.md` exists in the root directory, read it and memorize the glossary. All domain terms used in test naming, behavior descriptions, and code comments must align with `CONTEXT.md`. If a test description uses a term not in the glossary, confirm the term's definition before proceeding.
 
-**若測試未失敗：** 解釋原因並調整測試，直到它為正確原因失敗。
+**2. Read the implementation document**
+Read and understand the provided FXX/RXX/BXX document. Extract:
+- Feature goals and user stories
+- Business rules and boundary conditions
+- Acceptance criteria (listed item by item)
+- Test scenario table (ID, Given, When, Then)
+- Non-goals and known constraints
 
-**不可做：**
-- 跳過失敗測試步驟（除非使用者明確要求跳過 TDD）
-- 為了讓新測試通過而削弱現有測試
-- mock 掉被測行為本身
+If the document contains ambiguity, conflicts, or gaps, raise them **before implementation** and request clarification. If the user explicitly asks to proceed with assumptions, record the assumptions and continue, noting them in the implementation record.
 
----
-
-### 外掛點 A — 測試意外失敗時：結構化除錯
-
-**觸發條件：** 紅燈階段測試失敗，但失敗原因**不是**「功能尚未實作」，而是環境問題、依賴衝突、架構限制、或其他令人困惑的原因。
-
-**正常紅燈**（繼續實作）：
-> `AssertionError: expected undefined, got undefined` — 功能邏輯尚未建立
-
-**意外失敗**（進入除錯迴圈）：
-> `TypeError: Cannot read property 'x' of undefined`、`Module not found`、`Connection refused`、測試本身有問題
-
-**執行 diagnose 迴圈：**
-
-1. **建立反饋迴圈** — 找到最快速、可確定重現此失敗的方式（失敗測試、CLI 腳本、或最小重現案例）
-2. **生成假設** — 列出 3-5 個有排名的假設，每個假設必須是可偽證的：
-   > 「若 X 是根因，則改變 Y 會讓失敗消失；改變 Z 會讓失敗更嚴重。」
-   向使用者展示假設清單後再開始驗證。
-3. **逐一驗證** — 每次只改變一個變數，對照假設的預測觀察結果
-4. **修復並撰寫回歸測試** — 修復後，確認原始紅燈測試現在是正確的紅燈
-
-**將 diagnose 結果寫回 FXX 文檔：**
-在「實作記錄 → 假設與決策」欄位記錄：
-- 發生了什麼意外失敗
-- 嘗試的假設清單
-- 確認的根因
-- 採取的修復策略
-
-不從除錯跳回實作，除非問題已有明確根因。
+**3. Inspect the codebase**
+Identify:
+- Language, framework, package manager
+- Test framework and test execution command
+- Existing test style and naming conventions
+- Relevant production code and test files
 
 ---
 
-### 綠燈階段
+### Red phase
 
-**目標：用最小的生產代碼讓測試通過。**
+**Goal: Have a failing test — failing for the right reason — before writing any implementation code.**
 
-1. 實作通過測試所需的最小代碼
-2. 避免大幅重寫或不相關的清理
-3. 不改變公開 API，除非文檔有要求
-4. 執行目標測試直到通過
-5. 若變更可能影響鄰近行為，執行相關測試
+1. Map test scenarios from the document to concrete automated tests
+2. For each test case, identify:
+   - The linked acceptance criterion or business rule
+   - The behavior under test
+   - Required input conditions
+   - Expected output or state change
+3. Write the minimal failing test (start from the highest-priority test scenario)
+4. Run only the target test and confirm it fails
+5. Confirm the failure reason is "feature not yet implemented", not something else
 
-生產代碼必須實作文檔描述的行為，而非僅僅在字面上滿足測試。
+**If the test does not fail:** Explain why and adjust the test until it fails for the right reason.
 
----
-
-### 驗收階段
-
-對照原始 FXX/RXX/BXX 文檔逐一核對：
-
-- [ ] 每個文檔中的測試場景都有對應的自動化測試
-- [ ] 每條驗收標準都有測試覆蓋
-- [ ] 每條業務規則都已實作
-- [ ] 邊界條件已處理
-- [ ] 錯誤情境已測試
-- [ ] 實作行為與文檔描述一致（不是近似，是一致）
-- [ ] 若有偏離，已記錄原因
-
-若實作未完整滿足文檔，明確報告缺口，**不標記功能為完成**。
+**Must not:**
+- Skip the failing-test step (unless the user explicitly asks to skip TDD)
+- Weaken existing tests to make new tests pass
+- Mock out the behavior under test itself
 
 ---
 
-### 文檔更新
+### Hook A — When test fails unexpectedly: structured debugging
 
-實作完成後，更新 FXX/RXX/BXX 文檔的「實作記錄」章節：
+**Trigger condition:** The test in the red phase fails, but the failure reason is **not** "feature not yet implemented" — instead it is an environment issue, dependency conflict, architectural constraint, or other confusing reason.
+
+**Normal red** (continue to implementation):
+> `AssertionError: expected undefined, got undefined` — feature logic not yet established
+
+**Unexpected failure** (enter debugging loop):
+> `TypeError: Cannot read property 'x' of undefined`, `Module not found`, `Connection refused`, problem with the test itself
+
+**Execute the diagnose loop:**
+
+1. **Establish a feedback loop** — find the fastest, reliably reproducible way to trigger the failure (failing test, CLI script, or minimal reproduction case)
+2. **Generate hypotheses** — list 3-5 ranked hypotheses, each must be falsifiable:
+   > "If X is the root cause, changing Y will make the failure disappear; changing Z will make the failure worse."
+   Show the hypothesis list to the user before beginning validation.
+3. **Validate one by one** — change only one variable at a time and compare observations against hypothesis predictions
+4. **Fix and write a regression test** — after fixing, confirm the original red test is now a correct red
+
+**Write diagnose results back to the FXX document:**
+In the "Implementation record → Hypotheses and decisions" field, record:
+- What unexpected failure occurred
+- List of attempted hypotheses
+- Confirmed root cause
+- Fix strategy taken
+
+Do not return from debugging to implementation until the problem has a clear root cause.
+
+---
+
+### Green phase
+
+**Goal: Make the test pass with the minimum production code.**
+
+1. Implement the minimum code needed to pass the test
+2. Avoid large rewrites or unrelated cleanup
+3. Do not change the public API unless the document requires it
+4. Run the target test until it passes
+5. If the change may affect neighboring behavior, run the related tests
+
+Production code must implement the behavior described in the document, not merely satisfy the tests literally.
+
+---
+
+### Acceptance phase
+
+Check off each item against the original FXX/RXX/BXX document:
+
+- [ ] Every test scenario in the document has a corresponding automated test
+- [ ] Every acceptance criterion has test coverage
+- [ ] Every business rule is implemented
+- [ ] Boundary conditions are handled
+- [ ] Error scenarios are tested
+- [ ] Implementation behavior is consistent with the document description (not approximate — consistent)
+- [ ] If there are deviations, the reasons are recorded
+
+If the implementation does not fully satisfy the document, explicitly report the gaps and **do not mark the feature as complete**.
+
+---
+
+### Document update
+
+After implementation is complete, update the "Implementation record" section of the FXX/RXX/BXX document:
 
 ```markdown
-## 實作記錄
+## Implementation record
 
-### 狀態
-已實作 / 部分實作 / 未實作
+### Status
+Implemented / Partially implemented / Not implemented
 
-### 實作摘要
-描述實作了什麼。
+### Implementation summary
+Describe what was implemented.
 
-### 測試覆蓋
-列出新增或更新的測試，及其對應的文檔測試案例 ID。
+### Test coverage
+List newly added or updated tests and their corresponding document test case IDs.
 
-### 變更的檔案
-#### 生產代碼
+### Changed files
+#### Production code
 - ...
-#### 測試代碼
+#### Test code
 - ...
 
-### 驗收標準驗證
-| 驗收標準 | 狀態 | 依據 |
+### Acceptance criteria verification
+| Acceptance criterion | Status | Basis |
 |---|---|---|
-| ... | 通過 / 部分 / 失敗 | 測試名稱或說明 |
+| ... | Pass / Partial / Fail | Test name or description |
 
-### 測試場景驗證
-| 測試場景 ID | 狀態 | 自動化測試依據 |
+### Test scenario verification
+| Test scenario ID | Status | Automated test basis |
 |---|---|---|
-| ... | 通過 / 部分 / 失敗 | 測試名稱或說明 |
+| ... | Pass / Partial / Fail | Test name or description |
 
-### 執行的命令
+### Commands executed
 ```bash
 ...
 ```
 
-### 假設與決策
-列出實作過程中做出的假設，以及 diagnose 過程中的發現（若有）。
+### Hypotheses and decisions
+List assumptions made during implementation and findings from the diagnose process (if any).
 
-### 延遲項目
-列出未實作的內容及原因。
+### Deferred items
+List what was not implemented and why.
 
-### 備註
-風險、後續建議、已知限制。
+### Notes
+Risks, follow-up recommendations, known constraints.
 ```
 
 ---
 
-### 完成通知
+### Completion notification
 
-驗收階段與文檔更新都完成後：
+After both the acceptance phase and document update are complete:
 
-1. 判斷本次 `/ddd-tdd` 是否由 `/ddd-queue` worker 呼叫。
-2. 若是 queue worker：
-   - 不寄 completed 通知。
-   - 在回報與 queue ledger 中記錄：`ddd-tdd completed notification suppressed by ddd-queue; queue orchestrator will notify when all items complete.`
-3. 若不是 queue worker：
-   - 依 `ddd-email-notify` 讀取 `documents/ddd-email-notify.md` 的 `notify_email_from`、`notify_email_to`、`notify_on_tdd_completed`。
-   - 若 `notify_on_tdd_completed: true` 且 From/To 與寄信工具可用，寄出 `[DDD TDD Completed]` 通知。
-   - 若不能寄信，在最終回報中列出原因。
+1. Determine whether this `/ddd-tdd` was called by a `/ddd-queue` worker.
+2. If it is a queue worker:
+   - Do not send a completed notification.
+   - Record in the report and queue ledger: `ddd-tdd completed notification suppressed by ddd-queue; queue orchestrator will notify when all items complete.`
+3. If it is not a queue worker:
+   - Per `ddd-email-notify`, read `notify_email_from`, `notify_email_to`, `notify_on_tdd_completed` from `documents/ddd-email-notify.md`.
+   - If `notify_on_tdd_completed: true` and From/To and the email tool are available, send a `[DDD TDD Completed]` notification.
+   - If email cannot be sent, list the reasons in the final report.
 
-只在實作狀態為「已實作」時寄 completed 通知；部分實作、blocked、測試未通過或驗收未完成時不寄完成通知。
-
----
-
-### 外掛點 B — 綠燈後：浮現架構觀察
-
-每個重要的綠燈完成後，詢問使用者：
-
-> 「實作過程中是否暴露了架構問題？例如：模組耦合過緊、沒有合適的測試切面、職責邊界模糊——這些往往是潛在 RXX 文檔的信號。」
-
-- 若有：建議執行 `/improve-codebase-architecture`，其輸出可直接作為新 RXX 文檔的候選草稿
-- 若沒有：流程結束，告知使用者可執行 `/ddd-doc` 進行文檔同步
-
-**長時間實作週期（多輪對話後）：**
-若已進行多輪對話且上下文龐大，建議：
-> 「目前會話已很長，建議執行 `/handoff` 保留 DDD 狀態，以便在新會話中繼續。」
+Only send a completed notification when implementation status is "Implemented"; do not send when partially implemented, blocked, tests not passing, or acceptance not complete.
 
 ---
 
-## 安全規則
+### Hook B — After going green: surface architectural observations
 
-- 不在未執行測試的情況下宣稱成功（除非環境無法執行測試，且明確說明原因）
-- 不刪除或削弱測試來讓代碼通過
-- 不 mock 掉被測行為本身
-- 優先使用行為層級測試，而非實作細節測試
-- 不在讀取 FXX/RXX/BXX 文檔並新增失敗測試之前修改生產代碼
-- 不跳過實作後的文檔更新步驟
-- 不在驗收確認覆蓋之前將 FXX 標記為完成
+After each significant green phase completes, ask the user:
+
+> "Did the implementation expose any architectural issues? For example: overly tight module coupling, no suitable test seam, unclear responsibility boundaries — these are often signals for a potential RXX document."
+
+- If yes: suggest running `/improve-codebase-architecture`; its output can serve directly as a candidate draft for a new RXX document
+- If no: the flow ends; inform the user they can run `/ddd-doc` for document sync
+
+**Long implementation cycles (after many conversation turns):**
+If many turns have passed and the context is large, suggest:
+> "The current session is very long. Consider running `/handoff` to preserve DDD state so you can continue in a new session."
 
 ---
 
-## 最終輸出格式
+## Safety rules
+
+- Do not claim success without having run the tests (unless the environment cannot run tests and the reason is explicitly stated)
+- Do not delete or weaken tests to make code pass
+- Do not mock out the behavior under test itself
+- Prefer behavior-level tests over implementation-detail tests
+- Do not modify production code before reading the FXX/RXX/BXX document and adding a failing test
+- Do not skip the post-implementation document update step
+- Do not mark an FXX as complete before acceptance confirmation of coverage
+
+---
+
+## Final output format
 
 ```markdown
-## 變更內容
+## Changes
 
-生產代碼：
+Production code:
 - ...
 
-測試代碼：
+Test code:
 - ...
 
-更新的文檔：
+Updated documents:
 - ...
 
-## TDD 證據
+## TDD evidence
 
-觀察到的失敗測試：
+Observed failing tests:
 - ...
 
-觀察到的通過測試：
+Observed passing tests:
 - ...
 
-執行的命令：
+Commands executed:
 ```bash
 ...
 ```
 
-## FXX 驗收
+## FXX acceptance
 
-需求文檔：[路徑]
+Requirements document: [path]
 
-測試場景驗證：
+Test scenario verification:
 - ...
 
-驗收標準驗證：
+Acceptance criteria verification:
 - ...
 
-實作狀態：已實作 / 部分實作 / 未實作
+Implementation status: Implemented / Partially implemented / Not implemented
 
-缺口或延遲項目：
+Gaps or deferred items:
 - ...
 
-## 備註
-風險、跳過的測試、假設、後續建議。
+## Notes
+Risks, skipped tests, assumptions, follow-up recommendations.
 
-## 通知
+## Notification
 - ddd-email-notify: sent / suppressed-by-queue / skipped-not-configured / failed
-- From: <notify_email_from 或 —>
-- To: <notify_email_to 或 —>
-- Reason: <若未寄信，說明原因>
+- From: <notify_email_from or —>
+- To: <notify_email_to or —>
+- Reason: <if email was not sent, explain why>
 ```

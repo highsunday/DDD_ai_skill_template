@@ -1,108 +1,108 @@
 ---
 name: ddd-import-example
-description: 參考 reference-examples/import/ 下、由 ddd-export-example 從別專案導出的最小可跑範例，在目前專案實作類似功能。讀懂範例與 MANIFEST、對齊本專案語境（同棧為主、跨棧靠 MANIFEST 的核心概念儘力翻譯），生成一份引用該範例的 FXX 草稿、把範例 smoke test 翻成本專案的驗收條件，人類審核後交給 ddd-tdd 實作。當使用者已把別專案的範例 bundle 複製進 reference-examples/import/、想照它在本專案加上同類功能時使用。
+description: Reference the minimal runnable example exported from another project by ddd-export-example, located under reference-examples/import/, to implement a similar feature in the current project. Understand the example and MANIFEST, align with the current project context (same-stack uses code directly; cross-stack translates core concepts from MANIFEST as best as possible), generate an FXX draft that references the example, and convert the example smoke test into acceptance criteria. Hand off to ddd-tdd after human review. Use when the user has already copied another project's example bundle into reference-examples/import/ and wants to add a similar feature to this project.
 ---
 
 # DDD Import Example
 
-參考別專案導出的最小可跑範例，在目前專案實作類似功能。匯出端是 `ddd-export-example`；本技能不自己跨 repo 抓檔，範例由使用者**手動複製**到 `reference-examples/import/` 後才執行。
+Reference a minimal runnable example exported from another project to implement a similar feature in the current project. The export side is `ddd-export-example`; this skill does not fetch files across repos itself — the example must be **manually copied** by the user into `reference-examples/import/` before this skill runs.
 
-## 在 DDD pipeline 中的位置
+## Position in the DDD pipeline
 
-這個技能**不直接改程式碼**。它把「外來範例」轉成「本專案的 FXX 文檔」，再交回既有 DDD 流程：
+This skill **does not modify code directly**. It transforms an "external example" into an "FXX document for this project", then hands back to the existing DDD flow:
 
 ```
-別專案 export bundle  →（使用者手動複製）→ reference-examples/import/<feature>/
+Another project's export bundle  →（user manually copies）→ reference-examples/import/<feature>/
         ↓ ddd-import-example
-理解範例 + 對齊本專案語境
+Understand example + align with current project context
         ↓
-生成引用範例的 FXX 草稿（含驗收條件 = 翻譯後的 smoke test）
-        ↓ 人類審核
-ddd-tdd 紅燈 → 綠燈 → 驗收
+Generate FXX draft referencing the example (with acceptance criteria = translated smoke test)
+        ↓ human review
+ddd-tdd red → green → acceptance
 ```
 
-信條：**沒有模糊文檔進入 ddd-tdd。** 範例再好，也要先落成一份本專案語境的 FXX。
+Tenet: **No ambiguous document enters ddd-tdd.** No matter how good the example is, it must first be distilled into an FXX in the current project's context.
 
 ---
 
-## 步驟一 — 定位範例 bundle
+## Step 1 — Locate the example bundle
 
-1. 列出 `reference-examples/import/` 下的 bundle。
-2. 若資料夾不存在或為空：提醒使用者「請先用 ddd-export-example 在來源專案導出，再把該 bundle 資料夾複製到本專案的 `reference-examples/import/`」，然後停止。
-3. 若有多個，詢問使用者這次要參考哪一個。
-
----
-
-## 步驟二 — 讀懂範例
-
-依序讀：
-
-1. **`MANIFEST.md`**（先讀）——功能摘要、入口、檔案地圖、核心概念、改寫指引、smoke test 摘要。
-2. **入口檔 → 依檔案地圖讀核心程式碼**——理解本質流程。
-3. **smoke test**——理解「能跑」具體驗證了什麼。
-
-向使用者用幾句話複述「我理解這個範例在做什麼」，確認沒理解錯再往下。
+1. List the bundles under `reference-examples/import/`.
+2. If the directory does not exist or is empty: remind the user "Please first use ddd-export-example to export from the source project, then copy that bundle folder into this project's `reference-examples/import/`", then stop.
+3. If there are multiple bundles, ask the user which one to reference this time.
 
 ---
 
-## 步驟三 — 對齊本專案語境
+## Step 2 — Understand the example
 
-讀本專案資訊以對齊：
+Read in order:
 
-- `CONTEXT.md`（若存在）——術語、架構邊界。
-- `documents/modules/` 中相關模組文檔——既有職責邊界。
-- 本專案的依賴清單 / 既有同類程式碼——確認技術棧與慣例。
+1. **`MANIFEST.md`** (read first) — feature summary, entry point, file map, core concepts, rewrite guide, smoke test summary.
+2. **Entry file → core source files per the file map** — understand the essential flow.
+3. **Smoke test** — understand what "runnable" concretely verifies.
 
-判斷同棧或跨棧：
+Summarize to the user in a few sentences "I understand what this example does", and confirm there is no misunderstanding before proceeding.
 
-- **同棧（語言 / 框架相同）**：以範例的**具體程式碼**為主要參考，逐段對應到本專案結構與命名。
-- **跨棧（語言不同）**：以 MANIFEST 的**「核心概念（語言無關）」段**為主要參考，依本質流程在本專案的棧上**儘力翻譯**重建；具體程式碼僅作輔助。
+---
 
-把「哪些保留、哪些要替換」對照 MANIFEST 的「改寫指引」整理出來：
+## Step 3 — Align with current project context
+
+Read project information to align:
+
+- `CONTEXT.md` (if it exists) — terminology, architectural boundaries.
+- Relevant module documents under `documents/modules/` — existing responsibility boundaries.
+- The project's dependency list / existing similar code — confirm the tech stack and conventions.
+
+Determine same-stack or cross-stack:
+
+- **Same-stack (same language / framework)**: Use the example's **concrete code** as the primary reference, mapping each section to the current project's structure and naming.
+- **Cross-stack (different language)**: Use the **"Core Concepts (language-agnostic)" section** of the MANIFEST as the primary reference, and **translate as best as possible** to rebuild on the current project's stack based on the essential flow; treat the concrete code as supplementary only.
+
+Compile what to keep and what to replace against the MANIFEST's "rewrite guide":
 
 ```
-對齊計畫（功能：<feature>，同棧 / 跨棧）：
+Alignment plan (feature: <feature>, same-stack / cross-stack):
 
-保留（功能本質）：
-  - <核心邏輯>
+Keep (functional essence):
+  - <core logic>
 
-替換成本專案語境：
-  - <範例的 fake DB> → 本專案的 <真實資料層>
-  - <範例命名> → 本專案 CONTEXT.md 對應術語
+Replace with current project context:
+  - <example's fake DB> → this project's <real data layer>
+  - <example naming> → corresponding terms from this project's CONTEXT.md
 
-需要使用者裁示：
-  - <模糊或缺資訊的點>
+Needs user decision:
+  - <ambiguous or missing information>
 ```
 
 ---
 
-## 步驟四 — 生成 FXX 草稿
+## Step 4 — Generate FXX draft
 
-1. 在 `documents/implements/` 找下一個可用編號（F01、F02…；目錄不存在則 `mkdir -p documents/implements`）。
-2. 依本專案的 F00 模板（`documents/implements/F00-feature-template.md`，若有）撰寫 FXX，重點：
-   - **功能概述**：說明本功能，並註明「參考範例：`reference-examples/import/<feature>/`」。
-   - **需求描述**：以本專案使用者角色撰寫 User Story。
-   - **驗收準則 / 測試情境**：把範例 MANIFEST 的 **smoke test 摘要翻譯成本專案語境的 Given-When-Then**，作為至少一條驗收條件。範例「能跑」的那條路徑，就是本專案要先跑綠燈的那條。
-   - **實作註記**：附對齊計畫——哪些照搬、哪些替換、跨棧時的翻譯重點，並標注 MANIFEST 中的「容易踩雷的點」。
-3. 寫入 `documents/implements/F0X-<feature>.md`。
+1. Find the next available number under `documents/implements/` (F01, F02, …; if the directory does not exist, `mkdir -p documents/implements`).
+2. Write the FXX following this project's F00 template (`documents/implements/F00-feature-template.md`, if available), focusing on:
+   - **Feature overview**: Describe the feature and note "Reference example: `reference-examples/import/<feature>/`".
+   - **Requirements**: Write a User Story in the current project's user-role language.
+   - **Acceptance criteria / test scenarios**: Translate the **smoke test summary** from the example's MANIFEST into **Given-When-Then in the current project's context** as at least one acceptance criterion. The path that made the example "runnable" is the path this project must turn green first.
+   - **Implementation notes**: Attach the alignment plan — what to carry over, what to replace, translation focus points for cross-stack — and flag the "common pitfalls" from the MANIFEST.
+3. Write to `documents/implements/F0X-<feature>.md`.
 
 ---
 
-## 步驟五 — 交回人類審核與 ddd-tdd
+## Step 5 — Hand back for human review and ddd-tdd
 
-回報並停在審核點：
+Report and stop at the review checkpoint:
 
 ```
-FXX 草稿已生成（參考範例：reference-examples/import/<feature>/）：
+FXX draft generated (reference example: reference-examples/import/<feature>/):
 
   ✓ documents/implements/F0X-<feature>.md
 
-對齊方式：<同棧，直接參考程式碼 / 跨棧，依核心概念翻譯>
-驗收條件來源：範例 smoke test → 已翻成本專案 Given-When-Then
+Alignment approach: <same-stack, referencing code directly / cross-stack, translating from core concepts>
+Acceptance criteria source: example smoke test → translated to this project's Given-When-Then
 
-下一步：
-  1. 請審核這份 FXX（特別是驗收條件與「替換」清單是否正確）。
-  2. 審核通過後執行 /ddd-tdd，由它驅動紅燈 → 綠燈 → 驗收實作。
+Next steps:
+  1. Please review this FXX (especially whether the acceptance criteria and "replace" list are correct).
+  2. After review is approved, run /ddd-tdd to drive the red → green → acceptance implementation.
 ```
 
-**不要自己跳過審核直接實作。** 審核通過後由 `ddd-tdd` 接手。
+**Do not skip the review and implement directly.** After review is approved, `ddd-tdd` takes over.

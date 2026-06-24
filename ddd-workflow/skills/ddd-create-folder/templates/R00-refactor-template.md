@@ -1,71 +1,70 @@
 ---
-author: <作者>
+author: <author>
 date: <YYYY-MM-DD>
-title: <一句話說明重構目標>
+title: <one-line description of the refactor goal>
 uuid: 5b1750c751a94b57b4b96f73847fefe1
-version: <版本號>
+version: <version>
 ---
 
-# 重構需求書 – 重構XXX任務
+# Refactor Specification – Refactor XXX Task
 
-## 1. 目標  
-簡短描述為何要重構，以及完成後的主要好處。  
-> 例如：  
-> - 解決 /grid 與 /taxi-data 邏輯重複  
-> - 讓開發更易維護、測試
+## 1. Goal
+Briefly describe why this refactor is needed and what the main benefits are after completion.
+> Examples:
+> - Eliminate duplicated logic between /grid and /taxi-data
+> - Make the code easier to maintain and test
 
-## 2. 使用者故事  
-- **As a** 開發人員  
-- **I want** 有一個統一的資料取得流程  
-- **So that** 減少重複程式碼、快速定位問題
+## 2. User Story
+- **As a** developer
+- **I want** a unified data-fetching flow
+- **So that** duplicate code is reduced and problems are easier to locate
 
-## 3. 重構細項說明
+## 3. Refactor Details
 
-| 編號 | 說明 | 調整重點 | 注意事項 |
-|------|------|-----------|----------|
-| R1   | 統一資料入口 | 建立 `fetchMapData()` 封裝 `/grid` 與 `/taxi-data` | 回傳格式要與原邏輯一致 |
-| R2   | 去重與快取 | 同條件下避免多次發送請求 | 可考慮 `Map` 快取機制 |
-| R3   | 錯誤處理一致化 | 統一錯誤格式與前端顯示邏輯 | 不影響頁面載入，UI 顯示需清楚 |
-| R4   | 模組重組 | 將 `gridService`、`taxiDataService` 合併為一模組 | 新模組需補單元測試 |
-| R5   | 向下相容 | 重構後 API 與前端不需修改呼叫方式 | 保持參數與回傳結構不變 |
+| # | Description | Key changes | Notes |
+|---|-------------|-------------|-------|
+| R1 | Unify data entry point | Create `fetchMapData()` encapsulating `/grid` and `/taxi-data` | Return format must match existing logic |
+| R2 | Dedup and caching | Avoid multiple requests under the same conditions | Consider `Map`-based caching |
+| R3 | Consistent error handling | Unify error format and frontend display logic | Must not affect page load; UI error display must be clear |
+| R4 | Module reorganization | Merge `gridService` and `taxiDataService` into one module | New module needs unit tests |
+| R5 | Backward compatibility | Callers do not need to change how they call the API/module after refactor | Keep parameters and return structure unchanged |
 
+## 4. Test Checklist
+| Test item | Description | Priority |
+|-----------|-------------|----------|
+| Basic function verification | Confirm data is fetched correctly | High |
+| Caching mechanism | Same conditions do not re-send requests | Medium |
+| Error handling | Simulate backend errors; error prompt should be displayed | Medium |
 
-## 4. 測試檢核  
-| 測試項目     | 說明                     | 優先 |
-|------------|------------------------|----|
-| 基本功能驗證 | 確認資料拿得對             | 高  |
-| 快取機制    | 相同條件不重送             | 中  |
-| 錯誤處理    | 模擬後端錯誤需顯示錯誤提示      | 中  |
+> *PM: add or remove items according to project requirements*
 
-> *PM 填寫：請依專案需求補充或刪減*
+## 5. Refactor Key Points
+- **Unified entry**: all map data goes through `fetchMapData()`
+- **Cache & dedup**: no duplicate API calls under the same conditions
+- **Error display**: frontend shows a message on error responses
+- **Backward compatibility**: existing functionality behaves identically after the refactor
 
-## 5. 重構要點  
-- **統一入口**：所有地圖資料由 fetchMapData() 處理  
-- **快取 & 去重**：同條件不重複呼叫 API  
-- **錯誤提示**：回錯誤時前端要有顯示  
-- **向下相容**：舊版功能改動後無差異
-
-## 6. 補充說明
+## 6. Additional Notes
 
 
 ---
 
-## 附錄：TDD 重構流程提醒 (TDD Refactoring Workflow)
+## Appendix: TDD Refactoring Workflow
 
-1. **建立現有行為測試（回歸測試）**  
-   - 在重構前，以現有邏輯為基礎撰寫完整測試，涵蓋核心邏輯與邊界條件。  
-   - 確保重構後行為一致，避免產生 regression bug。
+1. **Write regression tests for existing behavior**
+   Before refactoring, write complete tests based on current logic, covering core logic and boundary conditions.
+   This ensures behavior is unchanged after the refactor and prevents regression bugs.
 
-2. **小步重構與測試通過**  
-   - 分階段替換架構與邏輯，每一步均須測試通過（綠燈）才進行下一步。  
-   - 保持重構與行為改變區分清楚，不混合多重修改。
+2. **Refactor in small steps, verify green each time**
+   Replace architecture and logic incrementally. Each step must pass all tests (green) before proceeding.
+   Keep the refactor clearly separated from behavior changes; do not mix multiple modifications.
 
-3. **更新文件與模組說明**  
-   - 新增或更新 Hook、服務模組與資料流文件，確保團隊能理解新結構。  
-   - 同步更新單元測試與驗收規格。
+3. **Update documentation and module descriptions**
+   Add or update documentation for hooks, service modules, and data flow so the team understands the new structure.
+   Sync unit tests and acceptance specifications.
 
-4. **刪除舊邏輯與驗證回歸測試通過**  
-   - 移除重構前的模組與程式碼，並再次執行所有測試以驗證系統完整性。
+4. **Remove old logic and verify all regression tests pass**
+   Delete modules and code from before the refactor, then run all tests again to verify system integrity.
 
-5. **記錄變更與版本控制**  
-   - 修改本文建明確記錄此次重構目的、模組改動、測試覆蓋範圍，供後續維護與審查使用。
+5. **Record changes and version control**
+   Update this document to clearly record the purpose of this refactor, module changes, and test coverage for future maintenance and review.

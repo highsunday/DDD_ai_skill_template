@@ -1,176 +1,176 @@
 ---
 name: ddd-doc
-description: DDD 強化版文檔技能。創建和維護 documents/ 下的工程文檔，並在撰寫前攔截模糊需求、在 RXX 時確認範疇、在實作後浮現架構技術債。當需要起草或更新 FXX / RXX / BXX 文檔，或審計模組文檔時使用。
+description: DDD enhanced documentation skill. Creates and maintains engineering documents under documents/, intercepting vague requirements before drafting, confirming scope during RXX, and surfacing architectural technical debt after coding. Use when drafting or updating FXX / RXX / BXX documents, or auditing module documents.
 ---
 
 # DDD Doc
 
-管理 `documents/` 下的工程文檔，並在三個關鍵節點整合 Pocock 技能以提升文檔品質。
+Manages engineering documents under `documents/`, integrating Pocock skills at three key hook points to improve document quality.
 
-## 文檔結構
+## Document Structure
 
 ```
 documents/
 ├── implements/
-│   ├── FXX-*   功能需求文檔
-│   ├── RXX-*   重構任務文檔
-│   ├── BXX-*   Bug 修正文檔
-│   └── 模板：F00 / R00 / B00
+│   ├── FXX-*   Feature requirement documents
+│   ├── RXX-*   Refactor task documents
+│   ├── BXX-*   Bug fix documents
+│   └── Templates: F00 / R00 / B00
 └── modules/
-    └── 模組高層次文檔（架構、職責、數據流）
+    └── High-level module documents (architecture, responsibilities, data flow)
 ```
 
-## 核心目標
+## Core Goal
 
-保持文檔與實作一致。代碼與文檔衝突時，以當前實作為準，除非使用者明確說明文檔描述的是預期的未來行為。
-
----
-
-## 建立 FXX / RXX / BXX 文檔
-
-### 前置：載入領域語言
-
-讀取 `CONTEXT.md`（若存在）。文檔中所有術語必須與其一致。若發現請求中的術語與 `CONTEXT.md` 定義衝突，立即提出：「你的詞彙表將 X 定義為 A，但你似乎指的是 B——請確認哪個是對的？」
-
-### 外掛點 A — 撰寫前：攔截模糊需求
-
-在草擬任何文檔之前，評估需求清晰度：
-
-**若需求模糊**（缺乏具體行為、無法推導測試案例）：
-- 告知使用者：「這份需求還不夠具體，建議先執行 `/grill-me` 深挖後再來撰寫文檔。」
-- 暫停，等待使用者決定。
-
-**若需求涉及現有架構但未確認影響範圍**：
-- 讀取 `documents/modules/` 中的相關模組文檔
-- 告知使用者：「這個需求影響到 [模組名稱]，建議先執行 `/grill-with-docs` 對照現有架構驗證邊界再撰寫。」
-- 暫停，等待使用者決定。
-
-**若需求描述非正式**（自然語言描述，無 Given/When/Then 結構）：
-- 可主動建議：「我可以先用 `/to-prd` 將描述轉為結構化草稿，再填入文檔模板，會更快——要這樣做嗎？」
-
-**若需求清晰**：直接進入下一步。
-
-### 步驟 1 — 確認文檔類型與編號
-
-1. 確認類型（新功能 FXX / 重構 RXX / Bug 修正 BXX）
-2. 列出 `documents/implements/` 找到下一個可用編號
-3. 讀取對應模板（F00 / R00 / B00）
-4. 讀取編號相鄰的現有文檔，了解已建立的慣例
-
-### 步驟 2 — 蒐集上下文
-
-- 在 `documents/modules/` 搜尋相關功能名稱、元件、服務、路由
-- 讀取相關模組文檔
-- 用 `rg` 在程式碼庫搜尋相關檔案和實作術語
-- 以模組文檔理解高層架構，但以原始碼驗證重要細節
-
-### 外掛點 B — RXX 文檔時：確認重構範疇
-
-**僅在建立 RXX 文檔時執行：**
-
-執行 `zoom-out`——請 AI 繪製所有相關模組與調用者的地圖，使用 `CONTEXT.md` 的術語描述。
-
-確認後詢問使用者：
-- 「這份模組地圖是否涵蓋了所有需要動到的部分？」
-- 「有沒有哪個邊界畫得過窄（遺漏耦合）或過寬（超出本次目標）？」
-
-在範疇確認後，才繼續草擬 RXX 文檔。
-
-### 步驟 3 — 草擬文檔
-
-遵照模板結構，並確保：
-
-- **驗收標準可測試。** 每條標準都能直接對應一個測試案例。
-- **包含具體測試場景。** 使用表格（ID、Given、When、Then、優先級）。
-- **列出可能受影響的模組和檔案。**
-- **明確標注假設、開放問題、非目標。**
-- **不過度指定實作細節**，除非正確性或相容性有要求。
-
-### 步驟 4 — 完成前檢查
-
-- 確認新需求是否需要建立新模組文檔或更新現有模組文檔
-- 告知使用者：「建議建立／更新以下模組文檔：[清單]」
+Keep documents and implementation in sync. When code and documents conflict, treat the current implementation as the source of truth, unless the user explicitly states that the document describes intended future behavior.
 
 ---
 
-## 實作完成後：同步文檔
+## Creating FXX / RXX / BXX Documents
 
-### 步驟 1 — 更新實作記錄
+### Prerequisites: Load Domain Language
 
-重新開啟相關 FXX/RXX/BXX 文檔，在「實作記錄」章節填入：
-- 最終行為
-- 變更的檔案／模組
-- 新增或更新的測試覆蓋
-- 執行的測試與結果
-- 假設與決策（特別是 `diagnose` 過程中的發現）
-- 已知限制或後續工作
+Read `CONTEXT.md` (if it exists). All terminology in documents must align with it. If you find that terminology in the request conflicts with definitions in `CONTEXT.md`, raise it immediately: "Your glossary defines X as A, but you seem to mean B — please confirm which is correct?"
 
-### 步驟 2 — 審計模組文檔
+### Hook A — Before Drafting: Intercept Vague Requirements
 
-對照 `documents/modules/`：
-- 若現有模組有重要改變，更新其文檔
-- 若引入了新模組、功能區域、服務或架構邊界，建議建立新模組文檔
-- 若使用者要求完整同步，直接執行更新；否則提供具體建議
+Before drafting any document, assess requirement clarity:
 
-### 外掛點 C — 實作後：浮現架構技術債
+**If the requirement is vague** (lacks specific behavior, cannot derive test cases):
+- Inform the user: "This requirement is not specific enough. It is recommended to run `/grill-me` to dig deeper before drafting the document."
+- Pause and wait for the user's decision.
 
-更新完文檔記錄後，詢問使用者：
+**If the requirement involves existing architecture but the impact scope is unconfirmed**:
+- Read the relevant module documents in `documents/modules/`
+- Inform the user: "This requirement affects [module name]. It is recommended to run `/grill-with-docs` to validate boundaries against the existing architecture before drafting."
+- Pause and wait for the user's decision.
 
-> 「實作過程中是否發現架構問題（例如：模組耦合過緊、缺乏合適的測試切面、職責邊界不清）？」
+**If the requirement description is informal** (natural language, no Given/When/Then structure):
+- Proactively suggest: "I can first use `/to-prd` to convert the description into a structured draft, then fill in the document template — it will be faster. Would you like to do that?"
 
-- 若有：建議執行 `/improve-codebase-architecture`，說明其輸出可直接作為新 RXX 文檔的候選草稿
-- 若無：流程正常結束
+**If the requirement is clear**: proceed directly to the next step.
 
----
+### Step 1 — Confirm Document Type and Number
 
-## 審計模組文檔
+1. Confirm the type (new feature FXX / refactor RXX / bug fix BXX)
+2. List `documents/implements/` to find the next available number
+3. Read the corresponding template (F00 / R00 / B00)
+4. Read existing documents adjacent in numbering to understand established conventions
 
-1. 讀取 `documents/modules/` 中的相關文檔
-2. 在實作中搜尋每一個重要聲明（框架版本、路由、元件、數據源、狀態流、API 行為、測試、已知限制）
-3. 分類不一致：
-   - 過時的路徑或檔案結構
-   - 遺漏的模組或行為
-   - 代碼已變更但文檔未更新
-   - 文檔將未來意圖描述為當前實作
-   - 過多低層細節（容易過時）
-4. 更新模組文檔以反映當前代碼——保持高層次、面向工程師、包含檔案路徑作為導航錨點
-5. 指出仍缺乏模組文檔的代碼區域
+### Step 2 — Gather Context
 
----
+- Search `documents/modules/` for relevant feature names, components, services, routes
+- Read relevant module documents
+- Use `rg` to search the codebase for related files and implementation terms
+- Use module documents to understand high-level architecture, but verify important details against source code
 
-## 模組文檔撰寫標準
+### Hook B — During RXX Documents: Confirm Refactor Scope
 
-良好的模組文檔章節：
+**Execute only when creating an RXX document:**
 
-- 目的
-- 當前實作狀態
-- 關鍵檔案
-- 主要職責
-- 數據／狀態流
-- 外部依賴
-- 重要限制
-- 已知限制
-- 測試說明
-- 相關 FXX/RXX/BXX 文檔
+Execute `zoom-out` — ask the AI to map all related modules and callers, described using the terminology from `CONTEXT.md`.
 
-避免：
-- 複製大段代碼片段
-- 記錄每個 prop 或局部變量
-- 將未實作的行為描述為已存在
-- 重複代碼中已顯而易見的細節
-- 留下過時的路徑或舊資料夾名稱
+After confirmation, ask the user:
+- "Does this module map cover all the parts that need to be changed?"
+- "Are there any boundaries drawn too narrowly (missing coupling) or too broadly (exceeding the scope of this task)?"
+
+Only continue drafting the RXX document after the scope is confirmed.
+
+### Step 3 — Draft Document
+
+Follow the template structure and ensure:
+
+- **Acceptance criteria are testable.** Each criterion maps directly to a test case.
+- **Includes specific test scenarios.** Use a table (ID, Given, When, Then, Priority).
+- **Lists modules and files that may be affected.**
+- **Clearly marks assumptions, open questions, and non-goals.**
+- **Does not over-specify implementation details**, unless correctness or compatibility requires it.
+
+### Step 4 — Pre-completion Check
+
+- Confirm whether new requirements need new module documents created or existing ones updated
+- Inform the user: "It is recommended to create/update the following module documents: [list]"
 
 ---
 
-## 驗證習慣
+## After Implementation: Sync Documents
 
-搜尋前優先使用 `rg` 或 `rg --files`。
+### Step 1 — Update Implementation Record
 
-編輯文檔前，必須先查看：
+Reopen the relevant FXX/RXX/BXX document and fill in the "Implementation Record" section with:
+- Final behavior
+- Changed files / modules
+- Added or updated test coverage
+- Tests executed and results
+- Assumptions and decisions (especially findings from the `diagnose` process)
+- Known limitations or follow-up work
+
+### Step 2 — Audit Module Documents
+
+Compare against `documents/modules/`:
+- If an existing module has significant changes, update its document
+- If a new module, feature area, service, or architectural boundary was introduced, suggest creating a new module document
+- If the user requests a full sync, execute updates directly; otherwise provide specific suggestions
+
+### Hook C — After Coding: Surface Architectural Technical Debt
+
+After updating the implementation record, ask the user:
+
+> "Were any architectural issues discovered during implementation (e.g., overly tight module coupling, lack of appropriate test seams, unclear responsibility boundaries)?"
+
+- If yes: suggest running `/improve-codebase-architecture`, explaining that its output can serve directly as a candidate draft for a new RXX document
+- If no: the process ends normally
+
+---
+
+## Auditing Module Documents
+
+1. Read the relevant documents in `documents/modules/`
+2. Search the implementation for every significant claim (framework versions, routes, components, data sources, state flow, API behavior, tests, known limitations)
+3. Categorize inconsistencies:
+   - Outdated paths or file structures
+   - Missing modules or behaviors
+   - Code changed but document not updated
+   - Document describes future intent as current implementation
+   - Too many low-level details (prone to going stale)
+4. Update module documents to reflect current code — keep them high-level, engineer-oriented, and include file paths as navigation anchors
+5. Point out code areas that still lack module documentation
+
+---
+
+## Module Documentation Writing Standards
+
+A good module document section covers:
+
+- Purpose
+- Current implementation status
+- Key files
+- Primary responsibilities
+- Data / state flow
+- External dependencies
+- Important constraints
+- Known limitations
+- Testing notes
+- Related FXX/RXX/BXX documents
+
+Avoid:
+- Copying large code snippets
+- Documenting every prop or local variable
+- Describing unimplemented behavior as existing
+- Repeating details that are already obvious from the code
+- Leaving outdated paths or old folder names
+
+---
+
+## Verification Habits
+
+Prefer `rg` or `rg --files` before searching.
+
+Before editing any document, you must first review:
 - `documents/implements/`
 - `documents/modules/`
-- 相關原始碼檔案
-- 當框架／函式庫版本重要時查看 `package.json`
-- 記錄驗證方式時查看測試或測試配置
+- Relevant source code files
+- `package.json` when framework / library versions matter
+- Tests or test configuration when documenting how verification was done
 
-不確定時，明確寫出不確定性，而非虛構缺失的實作細節。
+When uncertain, explicitly state the uncertainty rather than fabricating missing implementation details.

@@ -1,148 +1,148 @@
 ---
 name: ddd-start
-description: DDD 工作流程的統一入口。偵測需求類型並路由到正確的下游技能，確保沒有模糊需求直接進入文檔撰寫。當使用者提出新工作（功能、重構、Bug、模糊想法）時使用。
+description: Unified entry point for the DDD workflow. Detects requirement type and routes to the correct downstream skill, ensuring no vague requirements proceed directly to document writing. Use when a user raises new work (feature, refactor, bug, vague idea).
 ---
 
 # DDD Start
 
-所有新工作的入口點。在任何文檔撰寫或代碼實作開始之前執行。
+Entry point for all new work. Execute before any document writing or code implementation begins.
 
-## 步驟一 — 載入領域語言
+## Step 1 — Load domain language
 
-在根目錄查找 `CONTEXT.md`：
+Look for `CONTEXT.md` in the root directory:
 
-- 若存在：讀取並記住其中的術語表與領域邊界。後續所有對話與文檔中的術語必須與其一致。
-- 若不存在：告知使用者「目前專案缺少 CONTEXT.md，建議在實作過程中逐步建立，用於鎖定領域詞彙。」不阻塞流程，繼續下一步。
+- If it exists: read it and remember the glossary and domain boundaries within. All terminology in subsequent conversations and documents must be consistent with it.
+- If it does not exist: inform the user "This project is missing CONTEXT.md. It is recommended to build it incrementally during implementation to lock down domain vocabulary." Do not block the flow; continue to the next step.
 
-## 步驟二 — 偵測需求類型
+## Step 2 — Detect requirement type
 
-閱讀使用者的原始請求，判斷屬於以下哪一種類型。若無法判斷，直接問使用者：「這是新功能、重構、Bug 修正，還是還在發想階段？」
+Read the user's original request and determine which of the following types it belongs to. If you cannot determine the type, ask the user directly: "Is this a new feature, refactor, bug fix, or still in the ideation stage?"
 
-### 類型 A — 模糊想法
-**特徵：** 缺乏具體行為描述、沒有明確的驗收標準、使用「也許」「大概」「感覺」等措辭。
+### Type A — Vague idea
+**Characteristics:** Lacks specific behavior descriptions, has no clear acceptance criteria, uses words like "maybe", "roughly", "feels like".
 
-**路由：**
-1. 告知使用者：「需求還不夠具體，先用 `/grill-me` 深挖一下。」
-2. 執行 `grill-me` 挖掘流程：逐一提問，釐清目標用戶、核心行為、邊界條件。
-3. 挖掘收斂後，將對話中形成的結論整理成一段結構化描述，交棒給 `ddd-doc` 並指定類型為 FXX。
+**Route:**
+1. Inform the user: "The requirement is not specific enough yet. Let's use `/grill-me` to dig deeper first."
+2. Execute the `grill-me` drilling process: ask questions one by one to clarify target users, core behaviors, and boundary conditions.
+3. Once the drilling converges, organize the conclusions from the conversation into a structured description and hand off to `ddd-doc`, specifying type FXX.
 
-### 類型 B — 涉及現有架構的新功能
-**特徵：** 明確提及要修改現有模組、服務、或 API；或新功能依賴已有的領域概念。
+### Type B — New feature involving existing architecture
+**Characteristics:** Explicitly mentions modifying existing modules, services, or APIs; or the new feature depends on existing domain concepts.
 
-**路由：**
-1. 告知使用者：「這個需求涉及現有架構，先用 `/grill-with-docs` 對照領域模型驗證。」
-2. 執行 `grill-with-docs` 流程：對照 `CONTEXT.md`、`documents/modules/` 和程式碼庫，挑戰計劃中的矛盾點。
-3. 驗證完畢後，交棒給 `ddd-doc` 並指定類型為 FXX。
+**Route:**
+1. Inform the user: "This requirement involves existing architecture. Let's use `/grill-with-docs` to validate against the domain model first."
+2. Execute the `grill-with-docs` process: compare against `CONTEXT.md`, `documents/modules/`, and the codebase to challenge contradictions in the plan.
+3. After validation, hand off to `ddd-doc` specifying type FXX.
 
-### 類型 C — 規格清晰的新功能
-**特徵：** 需求包含明確的行為描述、驗收條件可以直接推導測試案例。
+### Type C — Well-specified new feature
+**Characteristics:** The requirement includes clear behavior descriptions; acceptance conditions can directly derive test cases.
 
-**路由：** 直接交棒給 `ddd-doc`，指定類型為 FXX。
+**Route:** Hand off directly to `ddd-doc`, specifying type FXX.
 
-### 類型 D — 重構任務
-**特徵：** 明確描述要改善結構、消除技術債、優化可讀性，但不改變外部行為。
+### Type D — Refactor task
+**Characteristics:** Clearly describes improving structure, eliminating technical debt, or optimizing readability, without changing external behavior.
 
-**路由：**
-1. 執行 `zoom-out`：請 AI 繪製相關模組地圖，確認重構範疇。
-2. 詢問使用者：「這份模組地圖是否涵蓋了所有需要動到的部分？」
-3. 確認後交棒給 `ddd-doc`，指定類型為 RXX。
+**Route:**
+1. Execute `zoom-out`: ask the AI to draw a map of the relevant modules to confirm the refactor scope.
+2. Ask the user: "Does this module map cover all the parts that need to be changed?"
+3. After confirmation, hand off to `ddd-doc`, specifying type RXX.
 
-### 類型 E — Bug 回報
-**特徵：** 描述的是「現有行為不符預期」，有明確的錯誤現象或重現步驟。
+### Type E — Bug report
+**Characteristics:** Describes "existing behavior not matching expectations", with clear error symptoms or reproduction steps.
 
-判準一句話：**「現在知道要改哪裡嗎？」** 依此分流：
+Use one question to route it: **"Do we currently know where the fix belongs?"**
 
-#### E1 — 根因已知、可乾淨修正
-**特徵：** 能穩定重現，且大致知道問題出在哪、要怎麼改（例如「少了 null check」「錯誤訊息字串寫錯」）。
+#### E1 — Root cause known, clean fix
+**Characteristics:** The defect is reproducible and the likely fault location and correction are understood, such as a missing null check or an incorrect error-message string.
 
-**路由：** 直接交棒給 `ddd-doc`，指定類型為 BXX，走 BXX → `ddd-tdd` 紅→綠。
+**Route:** Hand off directly to `ddd-doc`, specifying type BXX, then follow BXX → `ddd-tdd`.
 
-#### E2 — 根因未知、硬 bug
-**特徵：** 根因不明、要多輪實驗才能收斂，或間歇難重現、或使用者表示「找很久了 / 不知道為什麼 / 一直找不到」；預期可能跨 session 或換 agent 接手。
+#### E2 — Root cause unknown, hard bug
+**Characteristics:** The root cause is unknown, multiple experiments are required, reproduction is intermittent, or the user says the issue has resisted prior investigation. Resolution may span sessions or agents.
 
-**路由：**
-1. 告知使用者：「這個 bug 根因還不明確，改用 `/ddd-debug-trace` 持久化排查軌跡、逐步收斂。」
-2. 交棒 `ddd-debug-trace`：掃描 `documents/bugs/`，沒有對應文件時用 `grill-me`（bug 情境模式）逼出精確症狀、重現與帶基準值的完成條件，建立 `documents/bugs/BUG-XXX.md` 後自主排查。
-3. 收斂到 `resolved` 後，由 `ddd-debug-trace` 交棒 `ddd-doc` 將根因＋修法＋回歸測試落成一份 BXX。
+**Route:**
+1. Tell the user: "The root cause is still unclear. Switching to `/ddd-debug-trace` to persist the investigation history and converge incrementally."
+2. Hand off to `ddd-debug-trace`: scan `documents/bugs/`; if no matching trace exists, use `grill-me` in bug mode to establish precise symptoms, reproduction steps, and measurable completion criteria, then create `documents/bugs/BUG-XX.md` and investigate autonomously.
+3. After status reaches `resolved`, hand off to `ddd-doc` to create a BXX containing the root cause, fix, and regression tests.
 
-> 不確定 E1 還是 E2 時，先當 E1 走 BXX；若 `ddd-tdd` 階段查不出根因、`diagnose` 也卡住，再升級到 `ddd-debug-trace`。
+If E1 versus E2 is unclear, start with E1. Escalate to `ddd-debug-trace` if `ddd-tdd` and `diagnose` cannot identify the root cause.
 
-### 類型 F — 長時間工作佇列
+### Type F — Long-running work queue
 
-**特徵：** 使用者列出 2 到 5 個已排序的功能、Bug 修正或重構，希望 AI 一個接一個完成，以延長 AI 自主工作時間、減少人類被打斷；常見關鍵字包含「queue」、「佇列」、「批次」、「一一完成」、「每個功能 commit」、「每個功能新 session」、「Codex 和 Claude 輪流做」、「讓 AI 先連續做」。
+**Characteristics:** The user lists 2 to 5 ordered features, bug fixes, or refactors they want the AI to complete one by one, to extend AI autonomous work time and reduce human interruptions; common keywords include "queue", "batch", "complete one by one", "commit per feature", "new session per feature", "Codex and Claude take turns", "let AI do them consecutively".
 
-**與 ddd-plan 的差異：**
-- 若使用者已能列出具體 item，且每個 item 有需求、驗收方式、停止條件；相依關係也能用 `depends_on` 與 `unlock_condition` 描述 → 使用 `ddd-queue`
-- 若後續 item 的範疇必須等前一階段完成後才知道，或階段拆分本身需要人類審查 → 使用 `ddd-plan`
+**Difference from ddd-plan:**
+- If the user can already list specific items, and each item has requirements, acceptance criteria, and stop conditions; and dependencies can be described with `depends_on` and `unlock_condition` → use `ddd-queue`
+- If the scope of later items can only be known after earlier phases are complete, or the phase breakdown itself requires human review → use `ddd-plan`
 
-**路由：**
-1. 交棒 `ddd-queue` 建立或讀取 `documents/queue/QXX-*.md`。
-2. 在建立 QXX 階段先集中執行 `grill-me`，一次性釐清所有 item 的需求、設計問題、依賴、驗收方式與停止條件。
-3. 只有 QXX 的 `intake_grill_status: completed`、`ready_for_execution: true`，且待執行 item 都是 `clarification_status: clarified` 時，才允許進入執行。
-4. 若使用者要求立即執行，明確說明由 orchestrator 啟動新的 Codex / Claude Code session，每個 item 一個 session。
-5. 若任一 item 缺少可驗收行為，要求補足或將該 item 標記為 blocked，不要直接進入實作。
+**Route:**
+1. Hand off to `ddd-queue` to create or read `documents/queue/QXX-*.md`.
+2. During the QXX creation phase, first run `grill-me` in a concentrated session to clarify all items' requirements, design questions, dependencies, acceptance criteria, and stop conditions in one go.
+3. Only when the QXX has `intake_grill_status: completed`, `ready_for_execution: true`, and all pending items have `clarification_status: clarified` is execution permitted.
+4. If the user requests immediate execution, explicitly state that the orchestrator will launch a new Codex / Claude Code session, one session per item.
+5. If any item lacks verifiable behavior, require it to be filled in or mark that item as blocked; do not proceed directly to implementation.
 
-### 類型 G — 多階段大型改動
+### Type G — Large multi-phase change
 
-**預設不走這條路。** 有疑問時，先嘗試用一份 F/R/B 文件描述需求；若使用者已列出可自動推進的多個 item，走類型 F 的 `ddd-queue`。
+**Do not default to this route.** When in doubt, first try describing the requirement in a single F/R/B document; if the user has already listed multiple items that can be automatically progressed, use Type F's `ddd-queue`.
 
-**明確觸發（優先）：** 使用者說出以下任一關鍵字，直接路由，不需判斷：
-- 「幫我計劃」「規劃一下」「先規劃」「做個計劃」「寫個計劃」
-- 「分階段規劃」「階段規劃」「PXX 階段」
-- 「PXX」「Planning」「planning doc」
+**Explicit trigger (priority):** If the user says any of the following keywords, route directly without further judgment:
+- "help me plan", "let's plan", "plan first", "make a plan", "write a plan"
+- "phase-by-phase planning", "staged planning", "PXX phases"
+- "PXX", "Planning", "planning doc"
 
-**自動判斷（謹慎）：** 同時符合以下**全部**條件才自動路由：
-1. 現在寫不出完整的 F/R/B 文件（因為後面的需求細節要等前面完成才能確定）
-2. 存在明確的執行依賴（B 真的無法在 A 完成前開始，而非只是優先順序）
-3. 不同部分的性質截然不同（例如：必須先重構架構，才能在其上開發新功能）
+**Automatic judgment (cautious):** Only auto-route if **all** of the following conditions are met simultaneously:
+1. A complete F/R/B document cannot be written now (because later requirement details depend on earlier completion)
+2. There are clear execution dependencies (B truly cannot begin before A is complete, not merely a matter of priority)
+3. The nature of different parts is fundamentally different (e.g., the architecture must be refactored before new features can be built on top)
 
-**不走這條路的情況：**
-- 需求複雜但可以在一份文件內完整描述 → 走類型 A-E
-- 多個工作已能列成明確 queue，只是想排隊自動完成或減少打斷 → 走類型 F
-- 動到多個模組但屬於同一個功能 → 走類型 C 或 B
-- 只是感覺「很大」→ 先試試 `ddd-doc`，一份文件寫不下再來規劃
+**Do not use this route when:**
+- The requirement is complex but can be fully described in a single document → use Types A-E
+- Multiple tasks can already be listed as a clear queue, and you simply want them completed automatically or with fewer interruptions → use Type F
+- Multiple modules are involved but they belong to the same feature → use Type C or B
+- It just "feels big" → try `ddd-doc` first; only plan if it does not fit in one document
 
-**路由：**
-1. 若為關鍵字觸發：直接交棒 `ddd-plan`，告知使用者「收到，開始規劃 PXX。」
-2. 若為自動判斷：告知使用者「這個改動的後期細節依賴前期結果，建議先用 `/ddd-plan` 規劃各階段。」並確認後交棒。
+**Route:**
+1. If triggered by keyword: hand off directly to `ddd-plan` and inform the user "Got it, starting PXX planning."
+2. If auto-judged: inform the user "The later details of this change depend on earlier results; it is recommended to use `/ddd-plan` to plan each phase first." Then hand off after confirmation.
 
-## 步驟三 — 交棒
+## Step 3 — Hand off
 
-**交棒給 `ddd-doc`（類型 A-E1）時，明確說明以下三點：**
+**When handing off to `ddd-doc` (Types A-E1), explicitly state the following three points:**
 
-1. **文檔類型：** FXX / RXX / BXX
-2. **已收集的上下文：** 從 grill-me / grill-with-docs / zoom-out 過程中形成的結論摘要
-3. **CONTEXT.md 狀態：** 已載入 / 不存在
+1. **Document type:** FXX / RXX / BXX
+2. **Collected context:** A summary of conclusions formed during the grill-me / grill-with-docs / zoom-out process
+3. **CONTEXT.md status:** Loaded / Does not exist
 
-範例：
-> 「需求挖掘完畢。類型：FXX。核心需求：[摘要]。CONTEXT.md 已載入，關鍵術語：[術語列表]。請繼續 `/ddd-doc`。」
+Example:
+> "Requirement drilling complete. Type: FXX. Core requirement: [summary]. CONTEXT.md loaded, key terms: [term list]. Please continue with `/ddd-doc`."
 
-**交棒給 `ddd-debug-trace`（類型 E2）時，明確說明以下三點：**
+**When handing off to `ddd-debug-trace` (Type E2), explicitly state the following three points:**
 
-1. **症狀摘要：** 錯誤現象與錯誤指紋（精確訊息 / stack trace / 異常值）
-2. **已知重現資訊與完成條件：** 重現步驟、出現頻率，以及帶基準值的修好判準（不足的部分由 ddd-debug-trace 用 grill-me 補齊）
-3. **CONTEXT.md 狀態：** 已載入 / 不存在
+1. **Symptom summary:** The observed failure and error fingerprint, including exact messages, stack traces, or anomalous values
+2. **Known reproduction information and completion criteria:** Reproduction steps, frequency, and measurable success thresholds; `ddd-debug-trace` uses `grill-me` to fill gaps
+3. **CONTEXT.md status:** Loaded / Does not exist
 
-範例：
-> 「這是根因未明的硬 bug，改走 `/ddd-debug-trace`。症狀：[摘要]，錯誤指紋：[訊息]。重現：[步驟]，頻率：間歇。完成條件待補基準值。CONTEXT.md 已載入。請建立 `documents/bugs/BUG-XXX.md` 並自主排查；resolved 後交棒 `/ddd-doc` 落 BXX。」
+Example:
+> "This is a hard bug with an unknown root cause; route to `/ddd-debug-trace`. Symptom: [summary]. Error fingerprint: [message]. Reproduction: [steps], frequency: intermittent. Completion criteria still need measurable thresholds. CONTEXT.md loaded. Create `documents/bugs/BUG-XX.md`, investigate autonomously, and hand off to `/ddd-doc` for a BXX after resolution."
 
-**交棒給 `ddd-plan`（類型 G）時，明確說明以下三點：**
+**When handing off to `ddd-plan` (Type G), explicitly state the following three points:**
 
-1. **需求描述：** 使用者的原始需求摘要
-2. **已知影響範圍：** 目前可辨識的模組或功能區域
-3. **CONTEXT.md 狀態：** 已載入 / 不存在
+1. **Requirement description:** A summary of the user's original requirement
+2. **Known impact scope:** Currently identifiable modules or functional areas
+3. **CONTEXT.md status:** Loaded / Does not exist
 
-範例：
-> 「需求涉及多個模組，規模較大。已知影響範圍：[模組清單]。CONTEXT.md 已載入。請繼續 `/ddd-plan` 切分階段並起草 PXX 規劃書。」
+Example:
+> "This requirement spans multiple modules and is large in scale. Known impact scope: [module list]. CONTEXT.md loaded. Please continue with `/ddd-plan` to break down phases and draft a PXX planning document."
 
-**交棒給 `ddd-queue`（類型 F）時，明確說明以下六點：**
+**When handing off to `ddd-queue` (Type F), explicitly state the following six points:**
 
-1. **queue 目標：** 這批工作要讓 AI 自主完成到什麼程度
-2. **item 清單：** 每個 item 的名稱、類型（FXX/RXX/BXX）、驗收方式、依賴與解鎖條件
-3. **執行設定：** batch limit、偏好的 agent、是否需要 blocked / completed 時寄信；若需要寄信，提供 `notify_email_from`（寄信來源）與 `notify_email_to`（寄去哪裡）
-4. **集中釐清狀態：** 已完成 / 需要先 grill-me
-5. **上下文策略：** QXX 主文件只保留索引、摘要、active entries 與 handoff；長 log 歸檔到 `documents/queue/logs/`
-6. **CONTEXT.md 狀態：** 已載入 / 不存在
+1. **Queue goal:** The degree to which this batch of work should be autonomously completed by the AI
+2. **Item list:** Each item's name, type (FXX/RXX/BXX), acceptance criteria, dependencies, and unlock conditions
+3. **Execution settings:** batch limit, preferred agent, whether to send email on blocked / completed; if email is needed, provide `notify_email_from` (sending address) and `notify_email_to` (recipient address)
+4. **Concentrated clarification status:** Completed / Need to run grill-me first
+5. **Context strategy:** The QXX master document retains only index, summary, active entries, and handoff; long logs are archived to `documents/queue/logs/`
+6. **CONTEXT.md status:** Loaded / Does not exist
 
-範例：
-> 「這是一批已排序且可自動推進的工作，適合 `/ddd-queue`。共 3 個 item，Q02 依賴 Q01、Q03 依賴 Q02，預設 batch limit 3，blocked 與整批 completed 時寄信通知；寄信來源為 `notify_email_from`，收件信箱為 `notify_email_to`。queue worker 內部呼叫的 `/ddd-tdd` 不寄單項完成信，只在整批完成時由 queue 寄一次。CONTEXT.md 已載入。請先建立 QXX queue 文件並集中執行 `/grill-me` 釐清所有 item；QXX ready 後，若使用者要求立即執行，作為 orchestrator 每個 item 啟動新的 Codex / Claude Code session。QXX 使用 compact context：主文件保留摘要、索引、active entries 與 handoff，長 log 歸檔。」
+Example:
+> "This is a batch of ordered and automatically progressable work, suitable for `/ddd-queue`. There are 3 items in total: Q02 depends on Q01, Q03 depends on Q02. Default batch limit is 3; send email notification when blocked and when the entire batch is completed; the sending address is `notify_email_from`, the recipient inbox is `notify_email_to`. `/ddd-tdd` called internally by the queue worker does not send per-item completion emails; only the queue sends one email when the entire batch is complete. CONTEXT.md loaded. Please first create the QXX queue document and run `/grill-me` in a concentrated session to clarify all items; once QXX is ready, if the user requests immediate execution, act as orchestrator and launch a new Codex / Claude Code session for each item. QXX uses compact context: the master document retains summary, index, active entries, and handoff; long logs are archived."

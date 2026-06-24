@@ -1,7 +1,7 @@
 ---
-author: <作者>
+author: <author>
 date: <YYYY-MM-DD>
-title: <一句話說明這批工作佇列>
+title: <one-line description of this work queue>
 uuid: d1f21e4ca9284a1b8b0c33f9cc2b9a5d
 version: 1.0
 status: draft
@@ -13,26 +13,26 @@ communication_format_version: 1
 context_policy: compact
 ledger_retention: latest_active_entries
 ledger_archive_dir: documents/queue/logs
-notify_email_from: <可選，寄信來源；必須是目前環境已授權可寄出的信箱>
-notify_email_to: <可選，通知收件信箱>
+notify_email_from: <optional, sending address; must be an account authorized to send in the current environment>
+notify_email_to: <optional, notification recipient address>
 notify_on_queue_blocked: true
 notify_on_queue_completed: true
-notify_email: <deprecated，可選；舊版阻塞通知收件信箱，請改用 notify_email_to>
+notify_email: <deprecated, optional; legacy blocked notification recipient, use notify_email_to instead>
 ---
 
-# Queue - XXX 長時間工作佇列
+# Queue - XXX Long-Running Work Queue
 
-## 1. 使用時機
+## 1. When to use this
 
-本文件用於 2 到 5 個已排序、可自動推進的 DDD 工作。每個 item 會由新的 Codex 或 Claude Code session 單獨處理，完成後建立 git commit。
+This document is for 2 to 5 ordered, auto-advanceable DDD tasks. Each item will be handled by a new Codex or Claude Code session independently, with a git commit after completion.
 
-item 可以彼此獨立，也可以連續相依。若相依，必須填寫 `depends_on` 與 `unlock_condition`。
+Items may be independent or sequentially dependent. If dependent, `depends_on` and `unlock_condition` must be filled in.
 
-若後續 item 的範疇必須等前一 item 完成後才知道，或階段拆分本身需要人類審查，請改用 `documents/planning/PXX` 規劃書。
+If the scope of a later item can only be determined after an earlier item completes, or if phase breakdown requires human review, use a `documents/planning/PXX` planning document instead.
 
-## 2. Queue Intake Review（集中 grill-me）
+## 2. Queue Intake Review (centralized grill-me)
 
-> 本區在執行任何 worker 前完成。目標是在一開始集中釐清所有需求，減少後續每個子 session 反覆打斷使用者。
+> Complete this section before launching any workers. The goal is to clarify all requirements upfront in one session, reducing the number of interruptions to the user from each sub-session.
 
 intake_grill_status: pending
 ready_for_execution: false
@@ -43,114 +43,114 @@ reviewed_at: —
 
 | Item | Clarification | Key Decisions | Remaining Questions |
 |------|---------------|---------------|---------------------|
-| QXX-01 | pending | — | <待釐清問題> |
-| QXX-02 | pending | — | <待釐清問題> |
-| QXX-03 | pending | — | <待釐清問題> |
+| QXX-01 | pending | — | <questions to clarify> |
+| QXX-02 | pending | — | <questions to clarify> |
+| QXX-03 | pending | — | <questions to clarify> |
 
 ### Queue Intake Questions
 
 #### QXX-01
-- Q: <AI 使用 grill-me 集中提出的問題>
-- A: <使用者回答後填入>
+- Q: <questions raised centrally by AI using grill-me>
+- A: <fill in after the user responds>
 
 #### QXX-02
-- Q: <AI 使用 grill-me 集中提出的問題>
-- A: <使用者回答後填入>
+- Q: <questions raised centrally by AI using grill-me>
+- A: <fill in after the user responds>
 
 #### QXX-03
-- Q: <AI 使用 grill-me 集中提出的問題>
-- A: <使用者回答後填入>
+- Q: <questions raised centrally by AI using grill-me>
+- A: <fill in after the user responds>
 
 ### Cross-item Decisions
 
-- <跨 item 的順序、依賴、共用設計或非目標決策>
+- <ordering, dependencies, shared design decisions, or out-of-scope decisions that span items>
 
 ### Execution Readiness
 
-- [ ] 所有要執行的 item 都有明確需求
-- [ ] 所有要執行的 item 都有使用者可操作的驗收方式
-- [ ] 所有相依 item 都有 `depends_on` 與 `unlock_condition`
-- [ ] 所有阻塞問題都已回答或對應 item 已標為 blocked / skipped
-- [ ] 若需要寄信通知，已設定 `notify_email_from` 與 `notify_email_to`
-- [ ] 若需要整批完成通知，`notify_on_queue_completed` 為 `true`
-- [ ] 可以將 `ready_for_execution` 改為 `true`
+- [ ] All items to be executed have clear requirements
+- [ ] All items to be executed have user-actionable acceptance criteria
+- [ ] All dependent items have `depends_on` and `unlock_condition` filled in
+- [ ] All blocking questions have been answered, or the corresponding items have been marked blocked / skipped
+- [ ] If email notifications are needed, `notify_email_from` and `notify_email_to` are configured
+- [ ] If a batch-completed notification is needed, `notify_on_queue_completed` is `true`
+- [ ] `ready_for_execution` can be changed to `true`
 
 ### Email Notification Settings
 
-> 本區描述 blocked 時的寄信設定。QXX 只保存信箱地址，不保存密碼、token、SMTP key 或 app password。
+> This section describes the sending configuration when blocked. QXX only stores email addresses — never passwords, tokens, SMTP keys, or app passwords.
 
-- From: `notify_email_from`（寄信來源；必須是目前執行環境已授權可寄出的信箱）
-- To: `notify_email_to`（blocked 或 completed 通知的收件信箱）
+- From: `notify_email_from` (sending address; must be an account authorized to send in the current environment)
+- To: `notify_email_to` (recipient for blocked or completed notifications)
 - Queue blocked: `notify_on_queue_blocked`
 - Queue completed: `notify_on_queue_completed`
-- Backward compatibility: 若舊文件只有 `notify_email`，視為 `notify_email_to`，並在下次更新 QXX 時補上 `notify_email_to`
-- Delivery rule: 若寄信工具不支援指定 From，orchestrator 必須確認工具目前授權帳號與 `notify_email_from` 一致；不一致時停止並在目前對話回報 blocked
-- Suppression rule: 由 `/ddd-queue` worker 呼叫的 `/ddd-tdd` 不寄單項完成通知；只在整批 queue 全部完成時寄一次
+- Backward compatibility: if an old document only has `notify_email`, treat it as `notify_email_to` and add `notify_email_to` on the next QXX update
+- Delivery rule: if the sending tool does not support specifying a From address, the orchestrator must verify the tool's currently authorized account matches `notify_email_from`; if not, stop and report blocked in the current conversation
+- Suppression rule: `/ddd-tdd` called internally by a `/ddd-queue` worker must not send a per-item completion notification; only one notification is sent by the orchestrator when the entire queue batch is complete
 
-## 3. 總覽
+## 3. Overview
 
-| Item | 名稱 | 類型 | Agent | Depends On | 狀態 | 關聯文檔 | Commit |
-|------|------|------|-------|------------|------|----------|--------|
-| QXX-01 | <工作名稱> | FXX | codex | — | pending | — | — |
-| QXX-02 | <工作名稱> | FXX | claude | QXX-01 | pending | — | — |
-| QXX-03 | <工作名稱> | BXX | auto | QXX-02 | pending | — | — |
+| Item | Name | Type | Agent | Depends On | Status | Related doc | Commit |
+|------|------|------|-------|------------|--------|-------------|--------|
+| QXX-01 | <task name> | FXX | codex | — | pending | — | — |
+| QXX-02 | <task name> | FXX | claude | QXX-01 | pending | — | — |
+| QXX-03 | <task name> | BXX | auto | QXX-02 | pending | — | — |
 
 ---
 
 ## 4. Context Budget / Token Policy
 
-> QXX 主文件只保留狀態、索引、摘要與未解決問題。完整 stdout、長測試輸出、舊 worker 回覆與歷史細節請歸檔到 `documents/queue/logs/`，再從 Log Index 連回來。
+> The QXX main document retains only status, index, summaries, and unresolved questions. Full stdout, long test output, old worker replies, and historical details should be archived to `documents/queue/logs/`, with a link back from the Log Index.
 
 ### Main File Keeps
 
-- Queue Intake Review 摘要
-- 總覽與各 item 目前狀態
-- 每個 item 最多 8 行的 Agent Handoff Summary
+- Queue Intake Review summary
+- Overview and current status of each item
+- Up to 8 lines of Agent Handoff Summary per item
 - Log Index
-- 最近、未解決、或下一個 worker 必讀的 Active Entries
+- Recent, unresolved, or must-read Active Entries for the next worker
 
 ### Archive When
 
-- 單一 ledger entry 超過約 1200 字
-- `worker_log` 超過約 8 行
-- 測試輸出或 stdout 需要保留全文
-- QXX 超過約 500 行或 ledger 超過 20 筆
-- 已完成 item 的細節不再影響下一個 item
+- A single ledger entry exceeds ~1200 words
+- `worker_log` exceeds ~8 lines
+- Full test output or stdout needs to be preserved
+- QXX exceeds ~500 lines or the ledger exceeds 20 entries
+- Completed item details no longer affect the next item
 
 ### Archive Format
 
 - Archive path: `documents/queue/logs/<QXX>-<entry-id>.md`
-- QXX 只保留摘要與 `Archive Ref`
-- 壓縮後追加 `compaction` 或 `archive` ledger entry
+- QXX retains only summary and `Archive Ref`
+- After compaction, append a `compaction` or `archive` ledger entry
 
 ---
 
 ## 5. Agent Communication Ledger (Append-only)
 
-> 本區是 Codex、Claude Code、orchestrator 與使用者的共享通訊帳本。只能追加，不要刪改既有 entry。若要修正，新增 `correction` entry。主文件只保留索引與 active entries；長內容放 archive。
+> This section is the shared communication ledger for Codex, Claude Code, orchestrator, and the user. Append only — do not delete or modify existing entries. To correct an entry, add a `correction` entry. The main document retains only the index and active entries; long content goes to archive.
 
 ### Log Index
 
 | Entry | Time | Item | From -> To | Type | Summary | Archive Ref |
 |-------|------|------|------------|------|---------|-------------|
-| L001 | <YYYY-MM-DD HH:MM> | QXX-01 | orchestrator -> codex | dispatch | <指派 QXX-01> | — |
+| L001 | <YYYY-MM-DD HH:MM> | QXX-01 | orchestrator -> codex | dispatch | <dispatch QXX-01> | — |
 
 ### Active Entries
 
 #### L001 — <YYYY-MM-DD HH:MM> — QXX-01 — orchestrator -> codex — dispatch
 
 **Message**
-<指派內容。例：請以 ddd-start -> ddd-doc -> ddd-tdd 處理 QXX-01，完成後更新 queue 並 commit。>
+<Dispatch content. Example: Please handle QXX-01 with ddd-start -> ddd-doc -> ddd-tdd, then update the queue and commit when done.>
 
 **Context**
 - Depends on: []
-- Unlock condition: 無
+- Unlock condition: none
 - Relevant docs: —
 
 **Expected Response**
-- 建立或更新 F/R/B 文檔
-- 記錄紅燈與綠燈測試
-- 更新 item 狀態、handoff_summary、commit hash
+- Create or update F/R/B document
+- Record red and green test results
+- Update item status, handoff_summary, commit hash
 
 **Artifacts**
 - —
@@ -163,7 +163,7 @@ reviewed_at: —
 
 ---
 
-## QXX-01 <工作名稱>
+## QXX-01 <task name>
 
 id: QXX-01
 type: FXX
@@ -171,7 +171,7 @@ agent: codex
 status: pending
 clarification_status: pending
 depends_on: []
-unlock_condition: 無
+unlock_condition: none
 auto_approve: true
 commit_required: true
 implemented_doc: —
@@ -182,32 +182,32 @@ handoff_summary: —
 communication_entries: [L001]
 archive_refs: []
 
-### 需求
+### Requirements
 
-<清楚描述要完成的使用者行為。>
+<Clearly describe the user behavior to be completed.>
 
-### 集中釐清結果
+### Clarification results
 
 - Clarification status: pending
 - Design notes: —
-- Open questions: <若有未回答問題，列在這裡並保持 ready_for_execution: false>
+- Open questions: <if there are unanswered questions, list them here and keep ready_for_execution: false>
 - User decisions: —
 
-### 驗收方式
+### Acceptance criteria
 
-- [ ] <使用者可操作的確認動作，以及預期看到什麼結果。>
-- [ ] <另一個確認動作。>
+- [ ] <user-actionable confirmation action and expected outcome>
+- [ ] <another confirmation action>
 
-### 停止條件
+### Stop conditions
 
-- <需求不清楚時應停止的條件。>
-- <需要使用者決策時應停止的條件。>
+- <condition under which work should stop when requirements are unclear>
+- <condition under which work should stop when a user decision is needed>
 
-### 阻塞記錄
+### Blocker log
 
-尚無。
+None.
 
-### 子 Session 溝通
+### Worker session communication
 
 questions: []
 need_user_decision: []
@@ -225,7 +225,7 @@ archive_refs: []
 
 ---
 
-## QXX-02 <工作名稱>
+## QXX-02 <task name>
 
 id: QXX-02
 type: FXX
@@ -233,7 +233,7 @@ agent: claude
 status: pending
 clarification_status: pending
 depends_on: [QXX-01]
-unlock_condition: QXX-01 completed 且相關基礎行為已有測試通過
+unlock_condition: QXX-01 completed and the relevant baseline behavior has passing tests
 auto_approve: true
 commit_required: true
 implemented_doc: —
@@ -244,31 +244,31 @@ handoff_summary: —
 communication_entries: []
 archive_refs: []
 
-### 需求
+### Requirements
 
-<清楚描述要在 QXX-01 基礎上完成的下一個使用者行為。>
+<Clearly describe the next user behavior to be completed, building on QXX-01.>
 
-### 集中釐清結果
+### Clarification results
 
 - Clarification status: pending
 - Design notes: —
-- Open questions: <若有未回答問題，列在這裡並保持 ready_for_execution: false>
+- Open questions: <if there are unanswered questions, list them here and keep ready_for_execution: false>
 - User decisions: —
 
-### 驗收方式
+### Acceptance criteria
 
-- [ ] <使用 QXX-01 完成後的行為作為前提，確認此 item 的預期結果。>
+- [ ] <using the completed behavior from QXX-01 as a prerequisite, confirm the expected outcome of this item>
 
-### 停止條件
+### Stop conditions
 
-- <QXX-01 未完成或 commit 缺失。>
-- <解鎖條件無法從文件、測試或程式碼確認。>
+- <QXX-01 not completed or commit missing>
+- <unlock condition cannot be confirmed from document, tests, or code>
 
-### 阻塞記錄
+### Blocker log
 
-尚無。
+None.
 
-### 子 Session 溝通
+### Worker session communication
 
 questions: []
 need_user_decision: []
@@ -286,7 +286,7 @@ archive_refs: []
 
 ---
 
-## QXX-03 <工作名稱>
+## QXX-03 <task name>
 
 id: QXX-03
 type: BXX
@@ -294,7 +294,7 @@ agent: auto
 status: pending
 clarification_status: pending
 depends_on: [QXX-02]
-unlock_condition: QXX-02 completed 且使用者流程已可執行
+unlock_condition: QXX-02 completed and the user flow is executable
 auto_approve: true
 commit_required: true
 implemented_doc: —
@@ -305,31 +305,31 @@ handoff_summary: —
 communication_entries: []
 archive_refs: []
 
-### 需求
+### Requirements
 
-<清楚描述錯誤現象與預期行為，或在前兩個 item 後要補上的修正。>
+<Clearly describe the bug symptom and expected behavior, or the fix to apply after the previous two items.>
 
-### 集中釐清結果
+### Clarification results
 
 - Clarification status: pending
 - Design notes: —
-- Open questions: <若有未回答問題，列在這裡並保持 ready_for_execution: false>
+- Open questions: <if there are unanswered questions, list them here and keep ready_for_execution: false>
 - User decisions: —
 
-### 驗收方式
+### Acceptance criteria
 
-- [ ] <重現原本問題，確認修正後不再發生。>
+- [ ] <reproduce the original problem; confirm it no longer occurs after the fix>
 
-### 停止條件
+### Stop conditions
 
-- <無法重現問題。>
-- <需要使用者提供資料、帳號或操作步驟。>
+- <unable to reproduce the problem>
+- <user needs to provide data, an account, or reproduction steps>
 
-### 阻塞記錄
+### Blocker log
 
-尚無。
+None.
 
-### 子 Session 溝通
+### Worker session communication
 
 questions: []
 need_user_decision: []
@@ -345,17 +345,17 @@ archive_refs: []
 - Risks: —
 - Next agent notes: —
 
-## 6. Queue 執行規則
+## 6. Queue execution rules
 
-1. 每個 item 必須由新的 Codex 或 Claude Code session 處理。
-2. 執行 worker 前必須完成 Queue Intake Review：`intake_grill_status: completed`、`ready_for_execution: true`，且要執行的 item 都是 `clarification_status: clarified`。
-3. 每個 item 必須以 `ddd-start → ddd-doc → ddd-tdd` 完整流程處理。
-4. 每個 item 完成後必須 git commit。
-5. 有相依關係時，必須確認 `depends_on` 全部 completed 且 `unlock_condition` 可驗證，才能開始下一個 item。
-6. 所有跨 agent 溝通必須追加到 `Agent Communication Ledger`，並將 entry id 寫回對應 item 的 `communication_entries` / `ledger_entries`；長內容只保留摘要並寫入 `archive_refs`。
-7. 子 session 需要使用者回答時，必須寫入 `questions` / `need_user_decision`，追加 `question` 或 `blocked` ledger entry，並將 item 設為 blocked。
-8. 使用者回答後，orchestrator 必須追加 `answer` ledger entry，再啟動新的 worker session。
-9. 遇到 blocked 必須停止整個 queue，不得繼續後續 item。
-10. 一次最多處理 `batch_limit` 個 pending item，且不得超過 5 個。
-11. 由 queue worker 呼叫的 `/ddd-tdd` 不寄完成通知；只有整批 queue 全部完成時，由 orchestrator 依 `notify_on_queue_completed` 寄一次完成通知。
-12. 下一個 worker 預設只讀 QXX frontmatter、Queue Intake Review、總覽、指定 item、依賴 item handoff、Log Index 與相關 active entries；除非 blocked 或上下文矛盾，不讀完整 archive。
+1. Each item must be handled by a new Codex or Claude Code session.
+2. Before launching any worker, Queue Intake Review must be complete: `intake_grill_status: completed`, `ready_for_execution: true`, and all items to be executed must have `clarification_status: clarified`.
+3. Each item must be processed with the full `ddd-start → ddd-doc → ddd-tdd` flow.
+4. A git commit must be created after each item completes.
+5. When there are dependencies, confirm all `depends_on` items are `completed` with commits, and that `unlock_condition` is verifiable, before starting the next item.
+6. All cross-agent communication must be appended to the `Agent Communication Ledger`, with entry IDs written back to the corresponding item's `communication_entries` / `ledger_entries`; long content retains only a summary with an `archive_refs` link.
+7. When a worker sub-session needs a user answer, it must write to `questions` / `need_user_decision`, append a `question` or `blocked` ledger entry, and set the item to blocked.
+8. After the user responds, the orchestrator must append an `answer` ledger entry before launching a new worker session.
+9. On any blocker, stop the entire queue immediately; do not continue to subsequent items.
+10. Process at most `batch_limit` pending items per run; never exceed 5.
+11. `/ddd-tdd` called by a queue worker must not send a completion notification; only the orchestrator sends a single completed notification when the entire queue batch is done, based on `notify_on_queue_completed`.
+12. The next worker reads only QXX frontmatter, Queue Intake Review, the overview, the assigned item, dependent item handoffs, the Log Index, and related active entries by default; do not read the full archive unless blocked or there is a context conflict.

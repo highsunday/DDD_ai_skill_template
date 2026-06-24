@@ -1,46 +1,46 @@
-# CONTEXT.md — 專案領域語言
+# CONTEXT.md — Project Domain Language
 
-> 這是專案的領域詞彙表。所有 AI 技能在撰寫文檔、測試或代碼之前都會讀取此檔案。
-> 請填入你的專案詞彙，刪除不適用的範例。
+> This is the project's domain vocabulary. All AI skills read this file before writing documentation, tests, or code.
+> Fill in your project's terminology and remove any examples that do not apply.
 
-## Language（術語定義）
+## Language (Term Definitions)
 
 <!--
-格式：
-**術語名稱**：
-一句話定義。
-_避免使用：_ 其他容易混淆的同義詞或近義詞
+Format:
+**Term Name**:
+A one-sentence definition.
+_Avoid using:_ Other synonyms or near-synonyms that could cause confusion
 -->
 
-**[術語 1]**：
-[定義]
-_避免使用：_ [近義詞]
+**[Term 1]**:
+[Definition]
+_Avoid using:_ [Near-synonym]
 
-**[術語 2]**：
-[定義]
-_避免使用：_ [近義詞]
+**[Term 2]**:
+[Definition]
+_Avoid using:_ [Near-synonym]
 
-## Relationships（關係說明）
+## Relationships
 
 <!--
-描述核心概念之間的關係，例如：
-- 一個 Order 包含多個 OrderItem
-- 一個 User 可以有多個 Session
+Describe the relationships between core concepts, for example:
+- An Order contains multiple OrderItems
+- A User can have multiple Sessions
 -->
 
-## Architecture Boundaries（架構邊界）
+## Architecture Boundaries
 
 <!--
-描述系統的主要模組邊界，例如：
-- frontend/   — UI 層，不包含業務邏輯
-- backend/    — API 與業務邏輯
-- shared/     — 前後端共用的型別定義
+Describe the main module boundaries of the system, for example:
+- frontend/   — UI layer, contains no business logic
+- backend/    — API and business logic
+- shared/     — Type definitions shared between frontend and backend
 -->
 
-## Flagged Ambiguities（已釐清的模糊點）
+## Flagged Ambiguities
 
 <!--
-記錄過去曾引起混淆、已明確解決的術語問題，防止未來重複討論。
-格式：
-- "[舊用法]" 已解決：統一使用 [正確術語]，原因：[原因]
+Record terminology issues that have caused confusion in the past and have been explicitly resolved, to prevent repeated discussions in the future.
+Format:
+- "[Old usage]" resolved: standardized to [correct term], reason: [reason]
 -->

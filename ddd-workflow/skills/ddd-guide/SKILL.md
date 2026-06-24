@@ -1,114 +1,114 @@
 ---
 name: ddd-guide
-description: 建立或更新 documents/guides/ 下的 GXX 操作指南。這類文件以「快速指令在前、詳述在後」的格式記錄如何執行測試、啟動服務、打包建置等操作，讓工程師不需每次詢問 AI。當工程師明確說「幫我寫一份 guide」或「建立 guide」時使用。
+description: Create or update GXX operation guides under documents/guides/. These documents record how to run tests, start services, build packages, and other operations in a "quick commands first, details after" format, so engineers do not need to ask AI every time. Use when an engineer explicitly says "write me a guide" or "create a guide".
 ---
 
 # DDD Guide
 
-建立或更新 `documents/guides/` 下的 GXX 操作指南。
+Create or update GXX operation guides under `documents/guides/`.
 
-## 文檔定位
+## Document positioning
 
-GXX guide 是「給工程師查閱的操作手冊」，不是功能規格也不是架構說明：
+A GXX guide is an "operation manual for engineers to look up", not a feature spec or architecture description:
 
-| 類型 | 資料夾 | 對象 | 目的 |
-|------|--------|------|------|
-| FXX / RXX / BXX | `implements/` | AI + 工程師 | 記錄需求與實作決策 |
-| 模組文檔 | `modules/` | AI + 工程師 | 理解架構與職責邊界 |
-| **GXX guide** | **`guides/`** | **工程師** | **查閱操作指令，不需問 AI** |
+| Type | Folder | Audience | Purpose |
+|------|--------|----------|---------|
+| FXX / RXX / BXX | `implements/` | AI + Engineers | Record requirements and implementation decisions |
+| Module docs | `modules/` | AI + Engineers | Understand architecture and responsibility boundaries |
+| **GXX guide** | **`guides/`** | **Engineers** | **Look up operation commands without asking AI** |
 
-一份 guide 對應一種操作類型（測試 / 啟動 / 打包 / 部署等），**不是每個功能都要有**，只記錄頻繁使用的操作。
-
----
-
-## 步驟一 — 確認操作範圍
-
-詢問使用者（若未在指令中說明）：
-
-1. **這份 guide 要記錄哪種操作？**（執行測試 / 啟動服務 / 打包建置 / 其他）
-2. **針對哪個服務或模組？**（例如：backend、frontend、CLI 工具）
-3. **最常用的一行指令是什麼？**（這將成為 guide 最頂端的快速指令）
-
-若使用者已在指令中提供這些資訊，直接進入下一步。
+One guide corresponds to one type of operation (testing / starting / building / deploying, etc.), **not every feature needs one** — only record frequently used operations.
 
 ---
 
-## 步驟二 — 確認編號
+## Step 1 — Confirm operation scope
 
-1. 列出 `documents/guides/` 中現有的 GXX 文件
-2. 若目錄不存在，先建立：`mkdir -p documents/guides`
-3. 找出下一個可用編號（G01、G02 …）
-4. **若已存在同服務同操作類型的 guide**，詢問使用者是否要更新現有文件而非建立新的
+Ask the user (if not stated in the command):
 
----
+1. **What operation should this guide record?** (run tests / start service / build package / other)
+2. **For which service or module?** (e.g., backend, frontend, CLI tool)
+3. **What is the most commonly used one-line command?** (this will become the quick command at the very top of the guide)
 
-## 步驟三 — 蒐集資訊
-
-讀取以下內容作為撰寫依據：
-
-- `CONTEXT.md`（若存在）——確保術語一致
-- `documents/modules/` 中與該服務相關的模組文檔
-- 專案的 `package.json`、`Makefile`、`README.md` 等，找到現有指令
+If the user has already provided this information in the command, proceed to the next step directly.
 
 ---
 
-## 步驟四 — 撰寫 guide
+## Step 2 — Confirm numbering
 
-依照以下結構撰寫，**快速指令必須在最前面**：
+1. List existing GXX files in `documents/guides/`
+2. If the directory does not exist, create it first: `mkdir -p documents/guides`
+3. Find the next available number (G01, G02 …)
+4. **If a guide for the same service and operation type already exists**, ask the user whether to update the existing file rather than create a new one
+
+---
+
+## Step 3 — Gather information
+
+Read the following content as the basis for writing:
+
+- `CONTEXT.md` (if it exists) — to ensure consistent terminology
+- Module docs in `documents/modules/` related to that service
+- The project's `package.json`, `Makefile`, `README.md`, etc., to find existing commands
+
+---
+
+## Step 4 — Write the guide
+
+Write following the structure below, **quick commands must come first**:
 
 ```markdown
-# G0X — [操作名稱]
+# G0X — [Operation name]
 
-## 快速指令
+## Quick commands
 
 ​```bash
-# 直接可用的指令
+# Commands ready to use directly
 ​```
 
 ---
 
-## 前置條件
-（僅在有非顯而易見的前提時填寫）
+## Prerequisites
+(Fill in only when there are non-obvious prerequisites)
 
-## 詳細步驟
-（分步說明，包含每步的指令與簡短說明）
+## Detailed steps
+(Step-by-step instructions, including the command and a brief description for each step)
 
-## 常見問題
-（列出工程師實際遇到的問題，而非假設性問題）
+## Common issues
+(List issues engineers actually encounter, not hypothetical ones)
 
-## 相關文檔
-（關聯的 FXX / RXX / BXX，若有）
+## Related documents
+(Associated FXX / RXX / BXX, if any)
 ```
 
-**撰寫原則：**
-- 快速指令必須是可直接複製執行的完整指令
-- 詳細步驟不重複快速指令已說明的內容，只補充「為什麼」和「邊界情況」
-- 避免記錄每個參數的完整說明——那是 `--help` 的工作
-- 前置條件只寫非顯而易見的項目（例如：不需要寫「需要安裝 Node.js」）
+**Writing principles:**
+- Quick commands must be complete commands that can be copied and executed directly
+- Detailed steps do not repeat what the quick commands already explain — only supplement the "why" and "edge cases"
+- Avoid recording complete descriptions of every parameter — that is what `--help` is for
+- Prerequisites only list non-obvious items (e.g., no need to write "requires Node.js to be installed")
 
 ---
 
-## 步驟五 — 寫入檔案
+## Step 5 — Write to file
 
-將 guide 寫入 `documents/guides/G0X-[操作名稱].md`。
+Write the guide to `documents/guides/G0X-[operation-name].md`.
 
-檔名命名規則：
+File naming rules:
 - `G01-run-tests.md`
 - `G02-build.md`
 - `G03-start-dev-server.md`
 
 ---
 
-## 步驟六 — 完成回報
+## Step 6 — Completion report
 
 ```
-GXX Guide 建立完成：
+GXX Guide created:
 
-  ✓ documents/guides/G0X-[操作名稱].md
+  ✓ documents/guides/G0X-[operation-name].md
 
-快速指令預覽：
-  [顯示快速指令區塊內容]
+Quick command preview:
+  [Display quick command block content]
 ```
 
-若此操作原本缺乏說明且工程師之前可能花時間查詢，補充一句：
-「下次直接查 `documents/guides/` 就好，不需要再問 AI。」
+If this operation previously lacked documentation and engineers may have spent time searching for it, add a note:
+"Next time just check `documents/guides/` directly — no need to ask AI again."

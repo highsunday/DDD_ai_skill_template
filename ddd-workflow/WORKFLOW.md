@@ -1,329 +1,308 @@
-# AI 技能模板 — 強化版方法摘要（DDD × Pocock）
+# AI Skill Template — Enhanced Methodology Summary (DDD × Pocock)
 
-本專案在原有 DDD 工作流程的基礎上，整合 Matt Pocock 的技能庫，針對四個失敗節點進行強化。核心理念不變：文檔是唯一真理來源，AI 起草，人類審查，再由 AI 依此實作。新增的技能以**外掛點**的方式插入循環，而非替換骨架。
+This project builds on the original DDD workflow by integrating Matt Pocock's skill library, strengthening four failure nodes. The core philosophy remains unchanged: documents are the single source of truth, AI drafts, the user reviews, then AI implements accordingly. The added skills are inserted into the cycle as **plug-in points**, not as replacements for the skeleton.
 
 ---
 
-## 統一開發循環
+## Unified Development Cycle
 
 ```
-人類提出需求
+User submits a requirement
         ↓
-[ddd-start]  偵測需求類型，路由到正確入口
+[ddd-start]  Detect requirement type, route to the correct entry point
         ↓
-  ┌─ 模糊想法 ──→ [grill-me]        深挖真實需求
-  ├─ 涉及架構 ──→ [grill-with-docs]  對照現有領域模型驗證
-  ├─ 多階段大型改動 ──────────────────────────────────────────────────────┐
-  │                                                                      ↓
-  │                                             [ddd-plan]  草擬 PXX 規劃書
-  │                                                                      │
-  │                                                         人類審查並核准 PXX
-  │                                                                      │
-  │                                          逐階段執行（每個階段走以下流程）
-  │                                                                      │
-  ├─ 長時間工作佇列 ─────────────────────────────────────────────────────┐
-  │                                                                      ↓
-  │                                             [ddd-queue]  建立 QXX 佇列
-  │                                                                      │
-  │                            集中 [grill-me] 釐清所有 item
-  │                                                                      │
-  │                     每個 item 開新 session 跑 ddd-start/doc/tdd
-  │                                                                      │
-  └─ 已有規格 ──→ 直接進入文檔步驟 ←──────────────────────────────────────┘
+  ┌─ Vague idea ──→ [grill-me]        Deep-dive to surface real requirements
+  ├─ Involves architecture ──→ [grill-with-docs]  Validate against existing domain model
+  ├─ Large multi-phase change ──────────────────────────────────────────────────────────┐
+  │                                                                                     ↓
+  │                                                    [ddd-plan]  Draft PXX plan doc
+  │                                                                                     │
+  │                                                        User reviews and approves PXX
+  │                                                                                     │
+  │                                             Execute phase by phase (each phase follows the flow below)
+  │                                                                                     │
+  ├─ Long-running work queue ──────────────────────────────────────────────────────────┐
+  │                                                                                     ↓
+  │                                                    [ddd-queue]  Create QXX queue
+  │                                                                                     │
+  │                            Centralized [grill-me] to clarify all items
+  │                                                                                     │
+  │                     Each item opens a new session to run ddd-start/doc/tdd
+  │                                                                                     │
+  └─ Spec already exists ──→ Proceed directly to document step ←───────────────────────┘
         ↓
-[ddd-doc]  草擬 FXX / RXX / BXX 文檔（若來自 PXX，依規劃書建議類型起草）
+[ddd-doc]  Draft FXX / RXX / BXX document (if from PXX, draft per the plan's suggested type)
         │
-        ├─ RXX 文檔時 → [zoom-out]  確認重構範疇邊界
-        └─ 非正式描述 → [to-prd]    轉換為結構化草稿
+        ├─ For RXX document → [zoom-out]  Confirm refactor scope boundary
+        └─ Informal description → [to-prd]    Convert to structured draft
         ↓
-人類審查並核准文檔
+User reviews and approves document
         ↓
-[ddd-tdd]  紅燈 → 綠燈 → 驗收
+[ddd-tdd]  Red → Green → Acceptance criteria
         │
-        └─ 測試意外失敗 → [diagnose]  結構化除錯 → 結果寫回 FXX
-                              └─ 硬 bug、需多輪實驗或跨 session 收斂
-                                 → [ddd-debug-trace]  持久化排查軌跡到 documents/bugs/
+        └─ Unexpected test failure → [diagnose]  Structured debugging → results written back to FXX
+                              └─ Hard bug requiring multiple experiments or sessions
+                                 → [ddd-debug-trace]  Persist the investigation in documents/bugs/
         ↓
-[ddd-doc]  同步 FXX 記錄 + 模組文檔
-        │     若來自 PXX：回填關聯文檔編號、更新階段狀態
+[ddd-doc]  Sync FXX records + module documents
+        │     If from PXX: back-fill associated document numbers, update phase status
         │
-        └─ 發現架構技術債 → [improve-codebase-architecture]  輸出 RXX 候選
+        └─ Architecture technical debt found → [improve-codebase-architecture]  Output RXX candidates
 ```
 
-這個循環將**人類置於規劃者與審查者的角色**。Pocock 技能在每個失敗節點提供結構化的恢復路徑，而非事後補救。
+This cycle **places the user in the role of planner and reviewer**. Pocock skills provide structured recovery paths at each failure node, rather than after-the-fact remediation.
 
 ---
 
-## 三大文檔類別
+## Three Document Categories
 
-### 類別零 — 規劃書（`documents/planning/`）
+### Category Zero — Planning Documents (`documents/planning/`)
 
-**目的：** 將無法一次完成的大型改動拆成多個有序階段，作為後續 F/R/B 文件的上層規劃依據。
+**Purpose:** Break large changes that cannot be completed in one pass into multiple ordered phases, serving as the top-level planning basis for subsequent F/R/B documents.
 
-這些文檔在大型工作*開始前*由 AI 起草，在每個階段完成後*持續更新*狀態。
+These documents are drafted by AI *before* large work begins, and *continuously updated* after each phase completes.
 
-| 類型 | 前綴 | 模板 | 使用時機 |
+| Type | Prefix | Template | When to use |
 |---|---|---|---|
-| 多階段規劃 | `PXX` | `P00-planning-template.md` | 需要多個 F/R/B 才能完成的大型改動 |
+| Multi-phase plan | `PXX` | `P00-planning-template.md` | Large changes requiring multiple F/R/B documents to complete |
 
-每份 PXX 文檔包含：
-- 背景、總體目標與影響範圍
-- 各階段的描述與**使用者可驗證的預期成果**（讓使用者能自行確認每個階段是否成功）
-- 建議的 F/R/B 文檔類型，及執行後回填的實際關聯文檔編號
-- 各階段狀態（未開始 / 進行中 / 已完成）
-- 接棒 AI 的執行指引，說明如何讀取本文件並推進下一個階段
+Each PXX document contains:
+- Background, overall objective, and scope of impact
+- Description of each phase and **user-verifiable expected outcomes** (so the user can independently confirm whether each phase succeeded)
+- Recommended F/R/B document types, and back-filled actual associated document numbers after execution
+- Per-phase status (not started / in progress / completed)
+- Execution instructions for the next AI agent, explaining how to read this document and advance to the next phase
 
 ---
 
-### 類別零之一 — Queue（`documents/queue/`）
+### Category Zero-One — Queue (`documents/queue/`)
 
-**目的：** 將多個已排序、可自動推進的工作排成佇列，讓 AI 逐一以 DDD 流程完成，且每個 item 使用新的 Codex / Claude Code session 與獨立 commit。
+**Purpose:** Queue multiple ordered, automatically advanceable tasks so that AI completes them one by one using the DDD workflow, with each item using a new Codex / Claude Code session and an independent commit.
 
-這些文檔適用於「我有 2 到 5 個工作想讓 AI 先連續做一段時間」的情境。item 可以獨立，也可以相依；相依時必須明確寫出 `depends_on` 與 `unlock_condition`。
+These documents are suited for scenarios where "I have 2 to 5 tasks I want AI to work through consecutively." Items can be independent or dependent; when dependent, `depends_on` and `unlock_condition` must be explicitly stated.
 
-若後續 item 的範疇必須等前一階段完成後才知道，或階段拆分本身需要人類審查，使用 `ddd-plan`。
+If the scope of subsequent items can only be known after a prior phase completes, or if the phase breakdown itself requires user review, use `ddd-plan`.
 
-| 類型 | 前綴 | 模板 | 使用時機 |
+| Type | Prefix | Template | When to use |
 |---|---|---|
-| 工作佇列 | `QXX` | `Q00-queue-template.md` | 多個已排序、可自動推進的功能、Bug 修正或重構 |
+| Work queue | `QXX` | `Q00-queue-template.md` | Multiple ordered, automatically advanceable features, bug fixes, or refactors |
 
-每份 QXX 文檔包含：
-- batch limit 與 blocked / completed 通知設定；若需要寄信，使用 `documents/ddd-email-notify.md` 或 QXX frontmatter 明確設定 `notify_email_from`（寄信來源）與 `notify_email_to`（寄去哪裡）
-- `Queue Intake Review`：在執行前集中使用 `grill-me` 釐清所有 item 的需求、設計問題、依賴、驗收方式與停止條件
-- 每個 item 的類型（FXX/RXX/BXX）、指定 agent、依賴、解鎖條件、狀態、關聯文檔與 commit hash
-- 每個 item 的需求、使用者可操作驗收方式與停止條件
-- `Agent Communication Ledger`：append-only 記錄 orchestrator、Codex、Claude Code 與使用者之間的派工、問題、回答、決策、測試證據與接棒摘要；QXX 主文件只保留索引、摘要與 active entries，長 log 歸檔到 `documents/queue/logs/`
-- blocked 時的原因與需要使用者決策的選項
+Each QXX document contains:
+- batch limit and blocked / completed notification settings; if email notification is needed, use `documents/ddd-email-notify.md` or QXX frontmatter to explicitly set `notify_email_from` (sending address) and `notify_email_to` (recipient address)
+- `Queue Intake Review`: before execution, use `grill-me` centrally to clarify all items' requirements, design questions, dependencies, acceptance criteria, and stop conditions
+- Per-item type (FXX/RXX/BXX), assigned agent, dependencies, unlock conditions, status, associated documents, and commit hash
+- Per-item requirements, user-actionable acceptance criteria, and stop conditions
+- `Agent Communication Ledger`: append-only record of task assignments, questions, answers, decisions, test evidence, and handoff summaries between the orchestrator, Codex, Claude Code, and the user; the QXX main document retains only the index, summaries, and active entries, with long logs archived to `documents/queue/logs/`
+- Reason for blocked state and options requiring user decision
 
-執行時由 orchestrator 讀取 QXX，先確認 `Queue Intake Review` 已完成、`ready_for_execution: true`，且每個要執行的 item 都是 `clarification_status: clarified`。接著對每個 pending item 啟動新的 worker session。worker 只處理單一 item，且必須完整走 `ddd-start → ddd-doc → ddd-tdd`。完成後測試、更新文檔、git commit，然後停止。
+During execution, the orchestrator reads the QXX, first confirms that `Queue Intake Review` is complete, `ready_for_execution: true`, and that every item to be executed has `clarification_status: clarified`. It then starts a new worker session for each pending item. Workers handle only a single item and must fully execute `ddd-start → ddd-doc → ddd-tdd`. After completion, run tests, update documents, git commit, then stop.
 
-非互動子 session 不做即時對話。需要使用者判斷時，worker 將 item 設為 blocked，寫入 `questions` / `need_user_decision`，並追加 ledger entry；orchestrator 通知使用者並停止 queue。若已設定 `notify_email_from` 與 `notify_email_to` 且目前環境有可用寄信工具，orchestrator 會寄出 blocked 通知；若缺少設定、寄件來源無法驗證或寄信失敗，則在目前對話回報 blocked，且不得繼續後續 item。queue worker 內部呼叫的 `/ddd-tdd` 不寄單項完成信；只有整批 queue 全部完成時，由 orchestrator 寄一次 completed 通知。使用者回答後，也由 orchestrator 追加 `answer` entry，讓後續 agent 能從 QXX 讀到必要溝通紀錄。為了控制 token，後續 worker 預設只讀 Queue Intake Review、指定 item、依賴 item handoff、Log Index 與相關 active entries；除非 blocked 或上下文矛盾，不讀完整 archive。
+Non-interactive sub-sessions do not engage in real-time conversation. When user judgment is needed, the worker sets the item to blocked, writes `questions` / `need_user_decision`, and appends a ledger entry; the orchestrator notifies the user and stops the queue. If `notify_email_from` and `notify_email_to` are set and a mailing tool is available in the current environment, the orchestrator sends a blocked notification; if settings are missing, the sender cannot be verified, or sending fails, report the blocked status in the current conversation and do not continue subsequent items. The `/ddd-tdd` called internally by queue workers does not send per-item completion emails; only when the entire batch queue is fully complete does the orchestrator send one completed notification. When the user replies, the orchestrator also appends an `answer` entry so subsequent agents can read the necessary communication records from the QXX. To control token usage, subsequent workers by default only read the Queue Intake Review, the designated item, dependent item handoffs, the Log Index, and relevant active entries; they do not read the full archive unless blocked or the context is contradictory.
 
 ---
 
-### 類別一 — 實作文檔（`documents/implements/`）
+### Category One — Implementation Documents (`documents/implements/`)
 
-**目的：** 記錄並釐清每個交付給 AI 實作的工作單元範疇。
+**Purpose:** Record and clarify the scope of each unit of work delivered to AI for implementation.
 
-這些文檔在編碼*開始前*創建，在實作*完成後*更新。
+These documents are created *before* coding begins and updated *after* implementation is complete.
 
-| 類型 | 前綴 | 模板 | 使用時機 |
+| Type | Prefix | Template | When to use |
 |---|---|---|---|
-| 功能規格 | `FXX` | `F00-功能需求書模板.md` | 新功能 |
-| 重構規格 | `RXX` | `R00-重構任務模板.md` | 不改變行為的結構性改善 |
-| 錯誤修正規格 | `BXX` | `B00-Bug修正模板.md` | 重現並修正缺陷 |
+| Feature spec | `FXX` | `F00-功能需求書模板.md` | New features |
+| Refactor spec | `RXX` | `R00-重構任務模板.md` | Structural improvements that do not change behavior |
+| Bug fix spec | `BXX` | `B00-Bug修正模板.md` | Reproduce and fix defects |
 
-每份文檔包含：
-- 用戶故事與功能背景
-- Given/When/Then 格式的驗收標準
-- 測試場景表（ID、Given、When、Then、優先級）
-- 實作說明與限制條件
-- 編碼後由 AI 填入的**實作記錄**章節（狀態、測試證據、變更檔案、假設、缺口）
-
-> **BXX 與 BUG-XX 的分工：** BXX（在此）是「根因已知、可乾淨修正」的修正規格；當 bug 根因未明、需多輪實驗收斂時，改用下方的 Bug 排查軌跡（`documents/bugs/`），收斂後再把根因與修法落成一份 BXX。
+Each document contains:
+- User story and feature background
+- Acceptance criteria in Given/When/Then format
+- Test scenario table (ID, Given, When, Then, priority)
+- Implementation notes and constraints
+- **Implementation record** section filled in by AI after coding (status, test evidence, changed files, assumptions, gaps)
 
 ---
 
-### 類別一之二 — Bug 排查軌跡（`documents/bugs/`）
+### Category Two — Module Documents (`documents/modules/`)
 
-**目的：** 記錄硬 bug「**怎麼找到根因**」的調查史，讓排查方向只進不退地收斂，跨 session、跨接手者不流失。由 `ddd-debug-trace` 建立與維護。
+**Purpose:** Reflect the current state of the codebase at a high level, so new engineers can quickly understand the system without reading every file.
 
-這些文檔在硬 bug *排查過程中*持續更新，收斂到 `resolved` 後把結論落到 `documents/implements/` 的 BXX，調查史本身保留在此供日後查類似問題的人參考。
-
-| 類型 | 前綴 | 模板 | 使用時機 |
-|---|---|---|---|
-| Bug 排查軌跡 | `BUG-XX` | `BUG00-trace-template.md` | 根因未明、需多輪實驗或跨 session 收斂的硬 bug |
-
-每份文檔包含：
-- **狀態快照**（置頂）：根因方向、已排除摘要、下一步、進度——讓接手者 30 秒進入狀況
-- **錯誤指紋**：辨識 bug 是否復發的依據
-- **已確認事實**與**已排除範圍**：只進不退，不重複調查
-- 可疑點（含優先度）、當前假說、逐次**實驗紀錄**（假說 → 修改 → 指標變化 → 結果）
-- 解決方案與**對應 BXX**連結
+Key characteristics:
+- **High-level content only.** Responsibilities, boundaries, data flow, architecture — not line-by-line code details.
+- **Always in sync with code.** When code and module documents are inconsistent, code takes precedence.
+- **Engineer-facing.** Helps new members quickly locate a module's purpose, location, dependencies, and known limitations.
+- **Does not describe unimplemented behavior.**
 
 ---
 
-### 類別二 — 模組文檔（`documents/modules/`）
+## Six DDD Skills
 
-**目的：** 在高層次反映當前程式碼庫的狀態，讓新工程師無需閱讀每個檔案即可快速理解系統。
+### `ddd-start` (new)
 
-關鍵特性：
-- **僅呈現高層次內容。** 職責、邊界、數據流、架構——而非逐行代碼細節。
-- **始終與代碼同步。** 代碼與模組文檔不一致時，以代碼為準。
-- **面向工程師。** 讓新成員能快速定位模組的作用、位置、依賴與已知限制。
-- **不描述未實作的行為。**
+**Purpose:** Unified entry point. Detect requirement type and route to the correct downstream skill, ensuring no vague requirement goes directly into document writing.
 
----
+**When to trigger:** At the start of any new task.
 
-## 六個 DDD 技能
-
-### `ddd-start`（新增）
-
-**用途：** 統一入口，偵測需求類型並路由到正確的下游技能，確保沒有模糊需求直接進入文檔撰寫。
-
-**觸發時機：** 任何新工作開始時。
-
-**行為：**
-1. 讀取專案 `CONTEXT.md`（如存在），載入領域語言
-2. 偵測需求類型：
-   - **模糊想法**（缺乏具體行為描述）→ 執行 `grill-me`，收斂後交棒 `ddd-doc`
-   - **涉及現有架構的新功能**（修改現有模組）→ 執行 `grill-with-docs`，交棒 `ddd-doc (FXX)`
-   - **規格清晰的新功能** → 直接交棒 `ddd-doc (FXX)`
-   - **重構任務** → 執行 `zoom-out` 確認範疇，交棒 `ddd-doc (RXX)`
-   - **Bug 回報** → 直接交棒 `ddd-doc (BXX)`
-   - **長時間工作佇列**（2-5 個已排序且可自動推進的 item）→ 交棒 `ddd-queue`
-   - **多階段大型改動**（後續範疇依賴前期結果、需先規劃或人類審查階段切分）→ 交棒 `ddd-plan`
-3. 交棒時傳遞：需求類型、已挖掘的上下文、建議的文檔前綴與編號
+**Behavior:**
+1. Read the project's `CONTEXT.md` (if it exists) to load domain language
+2. Detect requirement type:
+   - **Vague idea** (lacks concrete behavior description) → Run `grill-me`, then hand off to `ddd-doc` after convergence
+   - **New feature involving existing architecture** (modifies existing modules) → Run `grill-with-docs`, hand off to `ddd-doc (FXX)`
+   - **New feature with clear spec** → Hand off directly to `ddd-doc (FXX)`
+   - **Refactor task** → Run `zoom-out` to confirm scope, hand off to `ddd-doc (RXX)`
+   - **Bug report** → Hand off directly to `ddd-doc (BXX)`
+   - **Long-running work queue** (2–5 ordered, automatically advanceable items) → Hand off to `ddd-queue`
+   - **Large multi-phase change** (subsequent scope depends on earlier results, requires upfront planning or user review of phase breakdown) → Hand off to `ddd-plan`
+3. When handing off, pass: requirement type, excavated context, suggested document prefix and number
 
 ---
 
-### `ddd-plan`（新增）
+### `ddd-plan` (new)
 
-**用途：** 大型改動的規劃入口。將無法一次完成的需求分解為有序的執行階段，為每個階段定義使用者可實際操作確認的成果，起草 PXX 規劃書後由人類審查核准，再逐階段交棒 `ddd-doc` 執行。
+**Purpose:** Planning entry point for large changes. Break requirements that cannot be completed in one pass into ordered execution phases, define user-actionable outcomes for each phase, draft a PXX plan document for user review and approval, then hand off phase by phase to `ddd-doc` for execution.
 
-**觸發時機：** 需求橫跨多個模組、階段切分需要人類審查、或後續階段範疇必須等前一階段完成後才能定義時。若相依 item 已能事先清楚列出並可自動推進，使用 `ddd-queue`。
+**When to trigger:** When requirements span multiple modules, the phase breakdown requires user review, or subsequent phase scope can only be defined after a prior phase completes. If dependent items can be clearly listed upfront and automatically advanced, use `ddd-queue`.
 
-**行為：**
-1. 讀取 `CONTEXT.md`，載入領域語言
-2. 若需求模糊，先執行 `grill-me` 深挖，再回來規劃
-3. 盤點影響範圍，識別模組依賴與改動類型組合
-4. 按「每個階段獨立可交付、對應一份 F/R/B 文檔、有可觀察成果」原則切分階段
-5. 為每個階段設計**使用者可操作的確認方式**（不是技術指標）
-6. 起草 PXX 規劃書，標注每個階段的建議文檔類型（FXX / RXX / BXX）
-7. 人類審查核准後，PXX 成為後續所有 F/R/B 文檔的上層依據
+**Behavior:**
+1. Read `CONTEXT.md` to load domain language
+2. If requirements are vague, run `grill-me` to deep-dive first, then return to plan
+3. Assess scope of impact, identify module dependencies and the combination of change types
+4. Break into phases following the principle: "each phase independently deliverable, corresponding to one F/R/B document, with an observable outcome"
+5. Design **user-actionable confirmation steps** for each phase (not technical metrics)
+6. Draft the PXX plan document, annotating each phase's suggested document type (FXX / RXX / BXX)
+7. After user review and approval, PXX becomes the top-level basis for all subsequent F/R/B documents
 
-**逐階段執行模式（PXX 核准後）：**
+**Phase-by-phase execution mode (after PXX approval):**
 
-每個階段由使用者將 PXX 交給 AI，AI 讀取當前狀態並推進：
-1. 讀取 PXX，找到最靠前的未開始階段
-2. 呼叫 `ddd-doc` 起草對應的 FXX / RXX / BXX（一次一份）
-3. 人類審查核准 F/R/B 後，呼叫 `ddd-tdd` 實作
-4. 驗收通過後，回填 PXX 的關聯文檔編號並更新階段狀態
-5. 重複至所有階段完成，將 PXX `status` 改為 `completed`
-
----
-
-### `ddd-queue`（新增）
-
-**用途：** 長時間工作佇列入口。建立或執行 QXX queue 文件，讓 2 到 5 個已排序、可自動推進的功能、Bug 修正或重構逐一完成。
-
-**觸發時機：** 使用者列出多個工作，並希望 AI 一個接一個完成、每個功能新 session、每個功能完成後 git commit，或提到 queue / 佇列 / 批次自動執行 / 減少人被打斷。
-
-**行為：**
-1. 讀取 `CONTEXT.md`，使用專案領域語言整理 item
-2. 建立 `documents/queue/QXX-*.md`，或讀取既有 QXX
-3. 先用集中式 `grill-me` 釐清所有 item 的需求、設計問題、依賴、驗收方式與停止條件
-4. 更新 `Queue Intake Review`，將可執行 item 標為 `clarification_status: clarified`
-5. 驗證每個 item 都有明確需求、驗收方式與停止條件
-6. 若 item 之間有依賴，寫入 `depends_on` 與 `unlock_condition`
-7. 若後續 item 的範疇必須等前一階段完成後才知道，改用 `ddd-plan`
-8. 執行時由 orchestrator 啟動新的 Codex / Claude Code worker session
-9. worker 只處理指定 item，依序執行 `ddd-start`、`ddd-doc`、`ddd-tdd`、更新 queue、git commit
-10. 所有跨 agent 訊息追加到 `Agent Communication Ledger`；長內容摘要留在 QXX，全文歸檔到 `documents/queue/logs/`
-11. 完成 batch limit 或遇到 blocked 後停止
-12. blocked 時使用 `notify_email_from` / `notify_email_to` 寄信通知使用者；若無可用寄信設定或工具，改在目前對話回報，並保留後續 item 為 pending
-13. 整批 queue 全部完成時寄 completed 通知；達到 batch limit 但仍有 pending item 時不寄完成通知
+Each phase is handed to AI by the user; AI reads the current state and advances:
+1. Read the PXX, find the earliest not-started phase
+2. Call `ddd-doc` to draft the corresponding FXX / RXX / BXX (one at a time)
+3. After user reviews and approves the F/R/B, call `ddd-tdd` to implement
+4. After acceptance criteria pass, back-fill the PXX with the associated document number and update phase status
+5. Repeat until all phases are complete, then change PXX `status` to `completed`
 
 ---
 
-### `ddd-email-notify`（新增）
+### `ddd-queue` (new)
 
-**用途：** DDD workflow 的操作通知技能。負責顯示目前寄信 info，設定專案或 QXX 的寄信來源與收件信箱，並在 ddd-tdd completed、queue blocked、queue completed 時處理寄信與 ledger 記錄。
+**Purpose:** Long-running work queue entry point. Create or execute QXX queue documents, allowing 2 to 5 ordered, automatically advanceable features, bug fixes, or refactors to be completed one by one.
 
-**觸發時機：** 使用者直接輸入 `/ddd-email-notify` 查看目前寄信 info，要求設定通知信箱，或 `ddd-tdd` / `ddd-queue` 需要寄信通知使用者。
+**When to trigger:** The user lists multiple tasks and wants AI to complete them one after another — each feature in a new session, with a git commit after each feature completes — or mentions queue / batch auto-execution / reducing interruptions.
 
-**行為：**
-1. 讀取 `documents/ddd-email-notify.md` 或 QXX frontmatter 的 `notify_email_from` 與 `notify_email_to`
-2. 直接觸發時顯示目前 From、To、寄信工具狀態，以及 ddd-tdd completed / queue blocked / queue completed 的寄信時機
-3. 若舊文件只有 `notify_email`，視為 `notify_email_to` 並在下次更新時遷移
-4. 驗證兩個信箱欄位存在，且不將密碼、token、SMTP key 或 app password 寫入 QXX
-5. 確認目前環境有可用寄信工具，並確認寄件來源與已授權帳號一致
-6. 寄出 completed 或 blocked 通知；若無法寄信，改在目前對話回報
-7. 將寄信成功、失敗或 fallback 結果追加到 `Agent Communication Ledger`
-
----
-
-### `ddd-doc`（強化版 doc-maintain）
-
-**用途：** 創建和維護兩類文檔。在原有 `doc-maintain` 基礎上新增三個外掛點。
-
-**在開發循環中——編碼前：**
-
-1. 讀取 `CONTEXT.md`，確保文檔術語與領域語言一致
-2. 評估需求清晰度——若模糊，建議先執行 `grill-me` 或 `grill-with-docs`
-3. 若描述非正式，可用 `to-prd` 先轉為結構化草稿，再填入 FXX 模板
-4. 找到下一個可用的 FXX/RXX/BXX 編號並讀取對應模板
-5. 檢查 `documents/modules/` 和程式碼庫以獲取相關上下文
-6. **RXX 文檔專屬：** 鎖定範疇前執行 `zoom-out`，確認重構邊界不過窄也不過寬
-7. 草擬完整的實作文檔供人類審查
-
-**在開發循環中——編碼後：**
-
-1. 以最終結果更新 FXX/RXX/BXX 實作記錄
-2. 對照新實作審計受影響的模組文檔
-3. 更新或標記已過時的模組文檔
-4. 詢問：「實作過程中是否發現架構技術債？」若有，建議執行 `improve-codebase-architecture`，其輸出可作為新 RXX 文檔的候選草稿
+**Behavior:**
+1. Read `CONTEXT.md` and organize items using the project's domain language
+2. Create `documents/queue/QXX-*.md`, or read an existing QXX
+3. Use centralized `grill-me` first to clarify all items' requirements, design questions, dependencies, acceptance criteria, and stop conditions
+4. Update `Queue Intake Review`, marking executable items as `clarification_status: clarified`
+5. Verify that each item has clear requirements, acceptance criteria, and stop conditions
+6. If there are dependencies between items, write `depends_on` and `unlock_condition`
+7. If the scope of subsequent items can only be known after a prior phase completes, use `ddd-plan` instead
+8. During execution, the orchestrator starts a new Codex / Claude Code worker session
+9. Workers handle only the assigned item, executing `ddd-start`, `ddd-doc`, `ddd-tdd`, updating the queue, and git committing in sequence
+10. All cross-agent messages are appended to the `Agent Communication Ledger`; summaries remain in the QXX, full content is archived to `documents/queue/logs/`
+11. Stop after completing the batch limit or encountering a blocked item
+12. When blocked, send an email notification to the user using `notify_email_from` / `notify_email_to`; if no mailing settings or tools are available, report the blocked status in the current conversation and keep subsequent items as pending
+13. Send a completed notification when the entire batch queue finishes; do not send a completed notification when the batch limit is reached but pending items remain
 
 ---
 
-### `ddd-tdd`（強化版 tdd-development）
+### `ddd-email-notify` (new)
 
-**用途：** 所有生產代碼變更，由已核准的實作文檔驅動。在原有 `tdd-development` 基礎上新增三個外掛點。
+**Purpose:** Operational notification skill for the DDD workflow. Responsible for displaying current mailing info, configuring the project or QXX sender and recipient inbox, and handling email sending and ledger recording when ddd-tdd completes, a queue is blocked, or a queue completes.
 
-**流程（不可協商）：**
+**When to trigger:** User directly invokes `/ddd-email-notify` to view current mailing info, requests notification inbox configuration, or `ddd-tdd` / `ddd-queue` needs to send an email notification to the user.
 
-1. 讀取 `CONTEXT.md`，確保測試命名與行為描述使用正確的領域詞彙
-2. 讀取並理解 FXX/RXX/BXX 文檔——這是需求的唯一權威來源
-3. 從文檔中提取驗收標準和測試案例
-4. 撰寫最小的失敗測試（紅燈階段）——必須在繼續之前確認失敗
-5. **若測試意外失敗（非「功能尚未實作」的正常紅燈）：** 進入 `diagnose` 結構化除錯迴圈，並將假設、根因、修復策略寫回 FXX 文檔的「實作記錄」
-6. 實作通過測試所需的最小生產代碼（綠燈階段）
-7. 驗證每個驗收標準都有測試覆蓋
-8. 將實作記錄寫回文檔
-9. 若本次不是 queue worker，依 `ddd-email-notify` 寄出 `/ddd-tdd` completed 通知；若是 queue worker，抑制單項完成信
-10. 詢問：「實作過程中是否暴露架構缺口？」若有，建議 `improve-codebase-architecture`
-11. 若為長時間實作週期，建議 `handoff` 保留 DDD 狀態
-
-不從模糊的聊天指令開始。如果不存在實作文檔，停止並要求提供一份。
+**Behavior:**
+1. Read `notify_email_from` and `notify_email_to` from `documents/ddd-email-notify.md` or QXX frontmatter
+2. When triggered directly, display the current From, To, mailing tool status, and the timing for ddd-tdd completed / queue blocked / queue completed emails
+3. If an older document only has `notify_email`, treat it as `notify_email_to` and migrate it on the next update
+4. Verify that both email fields exist, and do not write passwords, tokens, SMTP keys, or app passwords to the QXX
+5. Confirm that a mailing tool is available in the current environment, and that the sender matches the authorized account
+6. Send completed or blocked notifications; if email cannot be sent, report it in the current conversation instead
+7. Append the result of email success, failure, or fallback to the `Agent Communication Ledger`
 
 ---
 
-## 按需使用的 Pocock 技能（非強制步驟）
+### `ddd-doc` (enhanced doc-maintain)
 
-這些技能可以在 DDD 循環的任意節點手動觸發，不屬於強制流程：
+**Purpose:** Create and maintain two categories of documents. Adds three plug-in points on top of the original `doc-maintain`.
 
-| 技能 | 角色 | 典型觸發時機 |
+**In the development cycle — before coding:**
+
+1. Read `CONTEXT.md` to ensure document terminology is consistent with domain language
+2. Assess requirement clarity — if vague, suggest running `grill-me` or `grill-with-docs` first
+3. If the description is informal, use `to-prd` to convert it to a structured draft first, then fill in the FXX template
+4. Find the next available FXX/RXX/BXX number and read the corresponding template
+5. Check `documents/modules/` and the codebase for relevant context
+6. **RXX document only:** Run `zoom-out` before locking in scope to confirm refactor boundaries are neither too narrow nor too wide
+7. Draft a complete implementation document for user review
+
+**In the development cycle — after coding:**
+
+1. Update the FXX/RXX/BXX implementation record with the final results
+2. Audit affected module documents against the new implementation
+3. Update or flag outdated module documents
+4. Ask: "Was any architecture technical debt discovered during implementation?" If so, suggest running `improve-codebase-architecture`, whose output can serve as a candidate draft for a new RXX document
+
+---
+
+### `ddd-tdd` (enhanced tdd-development)
+
+**Purpose:** All production code changes, driven by an approved implementation document. Adds three plug-in points on top of the original `tdd-development`.
+
+**Process (non-negotiable):**
+
+1. Read `CONTEXT.md` to ensure test naming and behavior descriptions use the correct domain vocabulary
+2. Read and understand the FXX/RXX/BXX document — this is the sole authoritative source of requirements
+3. Extract acceptance criteria and test cases from the document
+4. Write the minimal failing test (red phase) — must confirm failure before proceeding
+5. **If a test fails unexpectedly (not a normal red light for "feature not yet implemented"):** Enter the `diagnose` structured debugging loop, and write assumptions, root cause, and fix strategy back to the "Implementation Record" in the FXX document
+6. Implement the minimal production code needed to pass the test (green phase)
+7. Verify that every acceptance criterion has test coverage
+8. Write the implementation record back to the document
+9. If this is not a queue worker, send the `/ddd-tdd` completed notification per `ddd-email-notify`; if this is a queue worker, suppress the per-item completion email
+10. Ask: "Were any architecture gaps exposed during implementation?" If so, suggest `improve-codebase-architecture`
+11. If this is a long-running implementation cycle, suggest `handoff` to preserve DDD state
+
+Do not start from vague chat instructions. If no implementation document exists, stop and require one.
+
+---
+
+## On-demand Pocock Skills (Non-mandatory steps)
+
+These skills can be manually triggered at any node in the DDD cycle and are not part of the mandatory flow:
+
+| Skill | Role | Typical trigger |
 |---|---|---|
-| `caveman` | 壓縮溝通，減少 token 消耗 | 文檔審查過程中反覆確認措辭時 |
-| `prototype` | 驗證方法的一次性探索 | 高度不確定的功能，提交 FXX 前 |
-| `handoff` | 保留跨上下文重置的 DDD 狀態 | 長時間的實作週期 |
-| `git-guardrails-claude-code` | 阻止破壞性的 git 命令 | tdd-tdd 期間的安全基礎設施 |
-| `ddd-debug-trace` | 把硬 bug 的排查軌跡持久化成 `documents/bugs/` 文件，跨 session 只進不退地收斂 | 一個 bug 反覆找不到根因、需要多輪實驗或換 session 接手時 |
+| `caveman` | Compress communication, reduce token consumption | When repeatedly confirming wording during document review |
+| `prototype` | One-off exploration to validate an approach | Highly uncertain features, before submitting FXX |
+| `handoff` | Preserve DDD state across context resets | Long implementation cycles |
+| `git-guardrails-claude-code` | Block destructive git commands | Safety infrastructure during ddd-tdd |
+| `ddd-debug-trace` | Persist hard-bug investigation history in `documents/bugs/` and converge across sessions | A bug repeatedly resists root-cause analysis or requires multiple experiments |
 
-### `ddd-debug-trace`（新增）
+### `ddd-debug-trace` (new)
 
-**用途：** 複雜 bug 的自主排查與修復。在 `diagnose` 的結構化除錯之上，多做一件事——把整段排查軌跡（已排除、已確認事實、可疑點、假說、實驗紀錄）持久化成 `documents/bugs/BUG-XXX.md`，並在文件最上方維護「狀態快照」。讓每次接手的 AI 都從上次收斂的位置繼續，而不是每次重新往相同地方找錯。
+**Purpose:** Autonomously investigate and fix complex bugs. In addition to the structured `diagnose` loop, it persists eliminated areas, confirmed facts, suspects, hypotheses, and experiment results in `documents/bugs/BUG-XX.md`, with a status snapshot at the top. Each new session resumes from the latest converged state.
 
-**觸發時機：** 一個 bug 難以一次解決、需要多輪實驗逐步收斂，或可能跨 session／換 agent 接手時。單次 session 內測試意外失敗用 `diagnose`；可重現的單純缺陷走 `ddd-doc (BXX)` → `ddd-tdd`。
+**When to use:** The bug cannot be resolved in one pass, requires multiple experiments, or may need another session or agent. Use `diagnose` for an unexpected test failure within one session; use `ddd-doc (BXX) → ddd-tdd` for a straightforward reproducible defect whose fix location is known.
 
-**行為：**
-1. 掃描 `documents/bugs/`；有既有文件就先讀「狀態快照」載入收斂結果，沒有就用 `grill-me`（bug 情境模式）逼出精確的症狀、重現與帶基準值的完成條件，並建立文件
-2. 從乾淨 working tree 開始，依「宣告實驗 → 改 → 測 → 判斷」循環自主推進，每個 Step 完成就即時寫回文件
-3. 部分改善立刻 commit 作為新基準點；退步或無變化則 `git restore` 並把該範圍寫入「已排除」
-4. 已排除範圍與已確認事實只進不退，不重複調查，除非出現矛盾證據
-5. 全部指標達標後填寫解決方案（含回歸測試），status → `resolved`，通知使用者最終驗收
+**Behavior:**
+1. Scan `documents/bugs/`; resume from an existing status snapshot, or use `grill-me` in bug mode to establish precise symptoms, reproduction steps, and measurable completion criteria before creating a trace
+2. Start from a clean working tree and iterate through declare experiment → change → measure → decide, writing every completed step back immediately
+3. Commit partial improvements as new baselines; restore regressions or no-op changes and record the investigated area as eliminated
+4. Treat eliminated areas and confirmed facts as monotonic knowledge unless contradictory evidence appears
+5. When all metrics pass, record the solution and regression tests, set status to `resolved`, and hand off to `ddd-doc` to create the final BXX
 
 ---
 
-## 關鍵設計原則
+## Key Design Principles
 
-- **AI 起草，人類核准。** 文檔創建步驟是協作的檢查點，而非形式。
-- **沒有已核准的文檔，就沒有代碼。** `ddd-tdd` 將文檔視為其唯一提示。
-- **沒有測試證據，就沒有成功。** 功能未完成，除非測試已運行並通過。
-- **大型改動先規劃，再執行。** `ddd-plan` 確保多階段工作有清晰的地圖，每個階段都有人類可操作的驗收動作，而非模糊的「完成」狀態。
-- **可自動推進的工作用 queue。** `ddd-queue` 適合 2 到 5 個已排序 item；可獨立也可相依，但依賴必須明確可驗證。每個 item 新 session、完成後獨立 commit、blocked 就停。
-- **每次只執行一個階段。** PXX 核准後，逐階段起草 F/R/B 並實作，避免早期假設污染後期設計。
-- **除錯是結構化的，而非臨時的。** 每次意外的測試失敗都經過 `diagnose` 處理，結果寫入 FXX 記錄。
-- **架構觀察不丟失。** 實作後浮現的技術債通過 `improve-codebase-architecture` 轉化為 RXX 候選文檔。
-- **模組文檔反映現實。** 過時的模組文檔被 `ddd-doc` 視為缺陷處理。
-- **Pocock 技能是外掛點，不是替換。** `ddd-doc` 和 `ddd-tdd` 仍是核心執行引擎，Pocock 技能在失敗節點提供結構化恢復路徑。
+- **AI drafts, the user approves.** The document creation step is a collaborative checkpoint, not a formality.
+- **No approved document, no code.** `ddd-tdd` treats the document as its sole prompt.
+- **No test evidence, no completion.** A feature is not done unless tests have been run and passed.
+- **Plan large changes before executing.** `ddd-plan` ensures multi-phase work has a clear map, with user-actionable acceptance steps for each phase rather than a vague "done" state.
+- **Use a queue for automatically advanceable work.** `ddd-queue` is suited for 2 to 5 ordered items; they can be independent or dependent, but dependencies must be explicitly verifiable. Each item gets a new session, an independent commit upon completion, and stops when blocked.
+- **Execute one phase at a time.** After PXX approval, draft F/R/B documents and implement phase by phase, avoiding early assumptions contaminating later design.
+- **Debugging is structured, not ad hoc.** Every unexpected test failure is processed through `diagnose`, with results written to the FXX record.
+- **Architecture observations are not lost.** Technical debt surfaced after implementation is converted into RXX candidate documents via `improve-codebase-architecture`.
+- **Module documents reflect reality.** Outdated module documents are treated as defects by `ddd-doc`.
+- **Pocock skills are plug-in points, not replacements.** `ddd-doc` and `ddd-tdd` remain the core execution engines; Pocock skills provide structured recovery paths at failure nodes.
