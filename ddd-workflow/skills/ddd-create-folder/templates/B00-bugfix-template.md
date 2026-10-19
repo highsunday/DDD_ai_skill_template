@@ -52,6 +52,17 @@ Written in Given-When-Then format. Clearly lists the correct behavior that must 
 ## 6. Additional Notes
 
 
+## UIUX Acceptance (all FXX / RXX / BXX)
+
+- **Applicability:** required / not-required, with a concrete frontend-impact reason. Missing fields are not an exemption.
+- **Required when:** user-facing frontend layout, content, navigation, interactions, responsive/accessibility behavior, or visible states are created or affected. Frontend refactors review retained user journeys; pure backend/non-UI work records not-required.
+- **Scope:** affected pages/components, target users, design conventions, and permitted change boundaries.
+- **Journeys:** acceptance/test IDs, starting states, actions, expected outcomes, and relevant loading/empty/validation/error/completion states.
+- **Environment:** runtime entry/startup, safe data/access, required viewports and input methods.
+- **Gate:** `ddd-tdd` automatically runs `uiux-review-loop` after automated acceptance; a separate UIUX designer operates the UI → feedback → in-scope fixes → actual retest. Default maximum 5 rounds including baseline.
+- **Pass criteria:** all required journeys/targets pass, no unresolved blocker/major issue or required correction, and an explicit independent reviewer pass on the final build.
+- **Record:** `documents/uiux/<document-id>-<slug>.md`; implementation record includes verdict, rounds, tested build/targets, evidence link, and unresolved findings. A stopped non-pass prevents completion; queue items become blocked.
+
 ## Appendix: TDD Fix Workflow
 
 Follow this process when fixing the bug to ensure fix quality and maintain system stability:

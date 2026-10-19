@@ -101,7 +101,7 @@ Before starting work, the handoff AI must:
 2. Identify the current phase to execute: prioritize any phase with status `[~] In progress`; if none, select the earliest `[ ] Not started` phase.
 3. Change that phase's status to `[~] In progress` and update the overview table.
 4. Based on the "Suggested doc type", call `ddd-doc` to draft the corresponding FXX / RXX / BXX document.
-5. After the user reviews and approves, run `ddd-tdd` to implement.
+5. After the user reviews and approves, run `ddd-tdd` to implement. For each phase, record UIUX applicability/reason and carry affected frontend journeys/targets into F/R/B. Frontend work requires the automatic independent `uiux-review-loop` after automated acceptance; only a final reviewer pass permits phase completion. Link the review record from F/R/B and this phase; a stopped non-pass keeps the phase incomplete and dependent phases locked.
 6. After implementation is complete:
    - Fill in the "Related doc" field with the actual document number (e.g. `F01-auth-login.md`)
    - Change phase status to `[x] Completed` and update the overview table

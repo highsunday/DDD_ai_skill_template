@@ -141,6 +141,7 @@ Draft following the template structure, ensuring:
   - User verification method is a specific checkbox list
   - Suggested document type (FXX / RXX / BXX) is filled in
   - Associated document field left as `—` (filled in after execution)
+  - UIUX applicability/reason; for frontend phases, carry affected journeys and targets into F/R/B so ddd-tdd invokes the required independent review
 - **Handoff notes**: Do not modify; keep the template's original general guidance.
 
 ---
@@ -198,4 +199,4 @@ After each phase's F/R/B document implementation is complete, the AI responsible
 3. Synchronously update the overview table
 4. If this is the last phase, change the document frontmatter `status` to `completed`
 
-**Do not mark a phase as `[x]` before implementation is complete (`ddd-tdd` acceptance has not yet passed).**
+**Do not mark a phase as `[x]` before implementation is complete (`ddd-tdd` acceptance, including required independent UIUX review, must pass).** A frontend review stopped with needs-work or blocked keeps the phase incomplete; link its record and the next action in PXX. Do not unlock a dependent phase using automated green tests alone.

@@ -4,7 +4,7 @@
 
 **DDD (Document-Driven Development)** means: write the document first, then write the code.
 
-**AI drafts the document → you review and approve → AI implements from the document**
+**AI drafts → you review and approve → AI implements → a UIUX designer tests affected frontend experiences**
 
 A "document" is not an after-the-fact explanation — it is a requirements contract that must exist before coding begins. AI does not write code directly from chat messages; it only writes code from documents you have approved.
 
@@ -28,7 +28,7 @@ DDD has a corresponding design at every stage of the process to intercept each o
 | Rule | Meaning |
 |---|---|
 | No approved document, no code | `ddd-tdd` stops without a document, forcing you to think it through first |
-| No passing tests, not done | "Should be fine" does not count — test evidence is required before closing |
+| No passing acceptance, not done | Automated tests must pass; affected frontend work also needs a UIUX designer to operate the interface and verify fixes |
 | Unexpected test failure requires structured debugging | Use `diagnose` to find the root cause — do not make speculative changes |
 
 ---
@@ -36,7 +36,9 @@ DDD has a corresponding design at every stage of the process to intercept each o
 ## Roles
 
 **You:** provide requirements, review documents, approve, confirm acceptance results
-**AI:** surface requirements, draft documents, write code, update records
+**Main agent:** surface requirements, draft documents, implement, fix review findings, update records
+
+**UIUX designer agent:** independently operate affected frontend interfaces, provide feedback, and verify fixes
 
 The core principle is one thing: **AI drafts, but you approve**. That approval act is the quality gate for the entire workflow.
 
@@ -53,7 +55,11 @@ You describe the requirement
     ↓
 You review and approve
     ↓
-/ddd-tdd     Red → Green → Acceptance
+/ddd-tdd     Red → Green → Automated acceptance
+    ↓
+Frontend UIUX affected?
+├─ Yes → Automatically run /uiux-review-loop → Designer confirms pass
+└─ No  → Record why review is not required
     ↓
 /ddd-doc     Update implementation record, sync module documents
 ```
@@ -119,6 +125,8 @@ Detects requirement type and routes to the correct next step, ensuring no ambigu
 | 2–5 items to complete in one go | `ddd-queue` |
 | Multi-phase large-scale change | `ddd-plan` |
 
+`ddd-start` also assesses frontend impact and carries UIUX applicability/reason into subsequent steps, including plan and queue handoffs.
+
 Keywords that trigger `ddd-plan` directly: "help me plan," "let's plan this out," "phase-by-phase plan," "PXX"
 
 ---
@@ -129,7 +137,7 @@ Keywords that trigger `ddd-plan` directly: "help me plan," "let's plan this out,
 
 **After coding:** update the implementation record → audit module documents → ask whether any architectural technical debt was identified.
 
-Each document contains: user story, Given/When/Then acceptance criteria, test scenario table, implementation notes, and an **implementation record** (filled in after completion).
+Each document contains: user story, Given/When/Then acceptance criteria, test scenario table, implementation notes, and an **implementation record** (filled in after completion). Record UIUX applicability/reason for every document. When required, define affected pages, journeys, target devices/input methods, pass criteria, and the round budget before approval.
 
 ---
 
@@ -141,8 +149,50 @@ Each document contains: user story, Given/When/Then acceptance criteria, test sc
 2. **Red:** write the minimal failing test and confirm it fails
 3. If a test fails unexpectedly → enter `diagnose` for structured debugging, write the root cause back into the document
 4. **Green:** implement the minimal production code
-5. **Acceptance:** confirm every acceptance criterion has test coverage
-6. Write the implementation record back into the document
+5. **Acceptance:** confirm automated coverage for automatable criteria and UIUX observation evidence where required
+6. **Frontend UIUX gate when applicable:** automatically delegate actual use → feedback → in-scope fixes → retest; require pass before completion
+7. Write implementation and UIUX evidence back into the document
+
+---
+
+### `/uiux-review-loop` — Automatic frontend UIUX acceptance
+
+**This is a required step within `ddd-tdd` when frontend UIUX is affected; no separate invocation is needed.** It applies to FXX / RXX / BXX, including plan phases and queue items.
+
+| Impact | Review behavior |
+|---|---|
+| New or changed layout, content, navigation, interactions, responsive/accessibility behavior, or visible states | Run automatically |
+| Frontend refactor that must preserve existing user journeys | Run regression review automatically |
+| Pure backend/non-UI work without frontend impact | Record why review is not required |
+
+**Review loop:**
+
+1. The main agent supplies the runnable interface, safe test data, journeys, and pass criteria from the approved spec.
+2. A separate UIUX designer agent operates the interface and returns feedback with reproduction steps and evidence.
+3. The main agent fixes findings within the approved scope and runs relevant automated checks.
+4. The designer operates the latest interface again to verify fixes and core-flow regressions; repeat while needed and within budget.
+
+The default limit is **5 rounds, including the initial test**; specify another limit in the request or spec. In-scope fixes continue under existing approval. Expanded requirements or changed product behavior need an approved amendment.
+
+| Verdict | DDD behavior |
+|---|---|
+| `pass` | All required journeys and targets pass on the final implementation, no unresolved blocker/major issue or required correction remains, and the designer explicitly approves; closeout can proceed |
+| `needs-work` | Continue fixing and retesting while rounds remain; keep work incomplete when the budget is exhausted |
+| `blocked` | Record the cause and next action when runtime access, independent delegation, interaction tools, or other prerequisites are missing, or another stop condition applies, such as repeated fixes without progress |
+
+Passing unit tests, source inspection, or screenshots alone cannot replace actual interaction testing. A stopped non-pass leaves F/R/B and PXX incomplete, blocks the queue item before its completion commit or dependency advancement, and prevents a completed notification.
+
+Store findings, fixes, evidence, and retest results in `documents/uiux/<document-id>-<slug>.md`, created when the review runs. Link it from F/R/B and queue/plan handoffs. Designer approval preserves any human acceptance required by the project.
+
+**Example:**
+
+```text
+/ddd-start
+Improve the mobile checkout flow while preserving the existing brand style.
+Include desktop, mobile, and keyboard operation in UIUX acceptance, with at most 8 rounds.
+```
+
+Review and approve the spec as usual, then run `/ddd-tdd`; it enters the UIUX loop automatically. You can also invoke `/uiux-review-loop` directly to review an existing interface; code changes in DDD projects still require an approved spec.
 
 ---
 
@@ -215,7 +265,7 @@ Lets AI complete 2–5 ordered tasks one by one, each item in a new session, wit
 1. Create the QXX document
 2. Use `grill-me` in one focused session to clarify all items' requirements, acceptance criteria, and stop conditions
 3. You confirm the QXX and allow execution
-4. AI opens a new session per item, runs `ddd-start → ddd-doc → ddd-tdd`, and commits after completion
+4. AI opens a new session per item, runs `ddd-start → ddd-doc → ddd-tdd` including required UIUX acceptance, and commits after passing
 5. If blocked, stop immediately and notify you
 
 **Example 1: Three independent bug fixes**
@@ -335,6 +385,8 @@ Module documents (`documents/modules/`): high-level descriptions of an existing 
 | Scenario | Command |
 |---|---|
 | New feature | `/ddd-start` → describe requirement → approve FXX → `/ddd-tdd` |
+| Frontend feature or UIUX change | Normal DDD flow → `/ddd-tdd` automatically runs designer testing, feedback, fixes, and retesting |
+| Review an existing interface | `/uiux-review-loop`; fixes still follow the approved spec |
 | Vague requirement | `/ddd-start` → AI runs grill-me automatically → enter ddd-doc after converging |
 | Bug discovered (root cause known) | `/ddd-start` → describe the symptom and reproduction steps → approve BXX → `/ddd-tdd` |
 | Hard bug (root cause unknown) | `/ddd-start` → `/ddd-debug-trace` → investigate until resolved → create BXX |

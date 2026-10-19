@@ -1,6 +1,6 @@
 ---
 name: ddd-tdd
-description: DDD enhanced implementation skill. Driven by approved FXX / RXX / BXX documents, executes the red→green→acceptance TDD cycle. Integrates diagnose structured debugging when tests fail unexpectedly, and surfaces architectural observations after going green. Use when implementing features, refactoring, or fixing bugs.
+description: DDD enhanced implementation skill. Driven by approved FXX / RXX / BXX documents, executes the red→green→acceptance TDD cycle. Integrates diagnose for unexpected failures, automatically requires independent UIUX review for affected frontend work before completion, and surfaces architectural observations after going green. Use when implementing features, refactoring, or fixing bugs.
 ---
 
 # DDD TDD
@@ -36,6 +36,9 @@ Read and understand the provided FXX/RXX/BXX document. Extract:
 - Acceptance criteria (listed item by item)
 - Test scenario table (ID, Given, When, Then)
 - Non-goals and known constraints
+- UIUX applicability and reason, approved review journeys/criteria, targets, round budget, and review record path
+
+Independently check frontend impact. New or changed user-facing frontend layout, content, interactions, navigation, responsive/accessibility behavior, or visible states require UIUX review; frontend refactors require usability regression review. Pure backend/non-UI work records not-required with a reason. For a missing or inconsistent contract, use `ddd-doc` to derive it from approved scope before frontend acceptance; request new approval only for an actual scope/behavior change.
 
 If the document contains ambiguity, conflicts, or gaps, raise them **before implementation** and request clarification. If the user explicitly asks to proceed with assumptions, record the assumptions and continue, noting them in the implementation record.
 
@@ -50,7 +53,9 @@ Identify:
 
 ### Red phase
 
-**Goal: Have a failing test — failing for the right reason — before writing any implementation code.**
+**Goal: Have a failing test — failing for the right reason — before implementing behavior.**
+
+Visual-only UIUX corrections use a recorded failing visual/usability observation followed by actual reviewer retesting; do not create artificial automated tests for styling. Behavior changes still follow the automated red → green steps below.
 
 1. Map test scenarios from the document to concrete automated tests
 2. For each test case, identify:
@@ -65,7 +70,7 @@ Identify:
 **If the test does not fail:** Explain why and adjust the test until it fails for the right reason.
 
 **Must not:**
-- Skip the failing-test step (unless the user explicitly asks to skip TDD)
+- Skip the failing-test step for behavioral changes (unless the user explicitly asks to skip TDD)
 - Weaken existing tests to make new tests pass
 - Mock out the behavior under test itself
 
@@ -119,8 +124,8 @@ Production code must implement the behavior described in the document, not merel
 
 Check off each item against the original FXX/RXX/BXX document:
 
-- [ ] Every test scenario in the document has a corresponding automated test
-- [ ] Every acceptance criterion has test coverage
+- [ ] Every automatable test scenario in the document has a corresponding automated test
+- [ ] Every acceptance criterion has appropriate verification evidence; visual/usability criteria also require the independent UIUX review below
 - [ ] Every business rule is implemented
 - [ ] Boundary conditions are handled
 - [ ] Error scenarios are tested
@@ -128,6 +133,20 @@ Check off each item against the original FXX/RXX/BXX document:
 - [ ] If there are deviations, the reasons are recorded
 
 If the implementation does not fully satisfy the document, explicitly report the gaps and **do not mark the feature as complete**.
+
+---
+
+### Required UIUX gate — when frontend experience is affected
+
+After automated acceptance is green, invoke [uiux-review-loop](../uiux-review-loop/SKILL.md) automatically when the impact assessment requires it. This is part of `ddd-tdd` acceptance, not an optional suggestion and not a second implementation workflow.
+
+1. Supply the approved F/R/B document, scoped journeys/criteria, runnable entry point, safe data, targets, round budget, and review record path. Launch the separate UIUX designer as specified by that skill. Newly built interfaces enter this gate once runnable; an existing baseline record may be resumed.
+2. The designer operates the UI and reports evidence; the main agent fixes in-scope findings, reruns relevant automated checks, and requests actual retesting until the reviewer returns pass or a stop condition applies. Behavioral fixes follow red → green; visual polish uses observable UI evidence without artificial tests that mirror styling.
+3. Stay inside this acceptance loop. Do not recursively call a second `ddd-tdd` or send per-round completion notifications. Amend and approve the document only when findings require new behavior or expanded scope; otherwise continue under existing approval.
+4. Only an explicit reviewer `pass` on the final implementation satisfies the gate. Required journeys that are untestable, missing delegation/control tools, unresolved findings, or an exhausted budget prevent completion. Preserve the skill's actual `needs-work` / `blocked` verdict and evidence. An automated test pass cannot override it.
+5. In a queue worker, a stopped non-pass review becomes queue item `blocked` with the underlying verdict and record link; hand control to the orchestrator and do not complete/commit the item or advance dependencies. In standalone/PXX work, keep the document partially implemented and the phase incomplete, reporting the needed next action.
+
+For non-UI work, record `UIUX review: not-required` and the reason. For required work, both automated acceptance and UIUX pass must refer to the latest implementation; rerun affected verification after subsequent changes.
 
 ---
 
@@ -171,6 +190,11 @@ List newly added or updated tests and their corresponding document test case IDs
 ### Hypotheses and decisions
 List assumptions made during implementation and findings from the diagnose process (if any).
 
+### UIUX acceptance
+Applicability: required / not-required, with reason.
+If required: pass / needs-work / blocked; rounds used / limit; tested build and targets; independent reviewer; review record/evidence link; unresolved findings.
+Required non-pass means Partially implemented, not Implemented.
+
 ### Deferred items
 List what was not implemented and why.
 
@@ -193,7 +217,7 @@ After both the acceptance phase and document update are complete:
    - If `notify_on_tdd_completed: true` and From/To and the email tool are available, send a `[DDD TDD Completed]` notification.
    - If email cannot be sent, list the reasons in the final report.
 
-Only send a completed notification when implementation status is "Implemented"; do not send when partially implemented, blocked, tests not passing, or acceptance not complete.
+Only send a completed notification when implementation status is "Implemented" and the required UIUX gate has passed (or is documented as not-required); do not send when partially implemented, blocked, tests not passing, or acceptance not complete.
 
 ---
 
@@ -218,9 +242,9 @@ If many turns have passed and the context is large, suggest:
 - Do not delete or weaken tests to make code pass
 - Do not mock out the behavior under test itself
 - Prefer behavior-level tests over implementation-detail tests
-- Do not modify production code before reading the FXX/RXX/BXX document and adding a failing test
+- Read the approved FXX/RXX/BXX before production changes. Behavioral changes require a failing test first; visual-only review corrections use the UIUX observation/retest evidence described above.
 - Do not skip the post-implementation document update step
-- Do not mark an FXX as complete before acceptance confirmation of coverage
+- Do not mark an FXX/RXX/BXX as complete before acceptance confirmation of coverage and the required independent UIUX pass
 
 ---
 
@@ -262,6 +286,8 @@ Acceptance criteria verification:
 - ...
 
 Implementation status: Implemented / Partially implemented / Not implemented
+
+UIUX acceptance: required / not-required (reason); pass / needs-work / blocked when required; rounds and review record link.
 
 Gaps or deferred items:
 - ...

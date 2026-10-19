@@ -16,6 +16,14 @@ Look for `CONTEXT.md` in the root directory:
 
 ## Step 2 — Detect requirement type
 
+### Cross-cutting UIUX requirement
+
+Before routing by requirement type, assess whether the work creates or affects a user-facing frontend interface: layout, content, navigation, interaction, responsive behavior, accessibility, or visible state/feedback. This applies to FXX, RXX, and BXX, including frontend refactors whose existing user journeys must remain usable. Pure backend, non-UI tooling, and documentation changes do not require this gate unless they affect the frontend experience.
+
+Carry `UIUX review: required / not-required` and the reason into every handoff (including plan/queue), together with affected pages, user journeys, targets, and any specified review budget. Uncertain impact must be resolved during `ddd-doc` context gathering, not silently treated as not-required. For mixed work, scope the review to affected frontend journeys.
+
+UIUX work follows the normal requirement routing and document approval below; it does not bypass F/R/B. `ddd-doc` defines the review contract, and `ddd-tdd` automatically invokes `uiux-review-loop` after automated acceptance and before completion. A direct request to use `uiux-review-loop` may gather baseline evidence first, but its fixes must still follow the project's document approval rules.
+
 Read the user's original request and determine which of the following types it belongs to. If you cannot determine the type, ask the user directly: "Is this a new feature, refactor, bug fix, or still in the ideation stage?"
 
 ### Type A — Vague idea

@@ -38,7 +38,11 @@ User submits a requirement
         ↓
 User reviews and approves document
         ↓
-[ddd-tdd]  Red → Green → Acceptance criteria
+[ddd-tdd]  Red → Green → Automated acceptance
+        │
+        ├─ Frontend UIUX affected → [uiux-review-loop]
+        │     Separate designer uses UI → feedback → in-scope fix → retest
+        │     Required pass before document/phase/item completion
         │
         └─ Unexpected test failure → [diagnose]  Structured debugging → results written back to FXX
                               └─ Hard bug requiring multiple experiments or sessions
@@ -152,7 +156,7 @@ Key characteristics:
    - **Bug report** → Hand off directly to `ddd-doc (BXX)`
    - **Long-running work queue** (2–5 ordered, automatically advanceable items) → Hand off to `ddd-queue`
    - **Large multi-phase change** (subsequent scope depends on earlier results, requires upfront planning or user review of phase breakdown) → Hand off to `ddd-plan`
-3. When handing off, pass: requirement type, excavated context, suggested document prefix and number
+3. When handing off, pass: requirement type, excavated context, suggested document prefix and number, plus UIUX applicability/reason and affected frontend journeys/targets
 
 ---
 
@@ -234,7 +238,8 @@ Each phase is handed to AI by the user; AI reads the current state and advances:
 4. Find the next available FXX/RXX/BXX number and read the corresponding template
 5. Check `documents/modules/` and the codebase for relevant context
 6. **RXX document only:** Run `zoom-out` before locking in scope to confirm refactor boundaries are neither too narrow nor too wide
-7. Draft a complete implementation document for user review
+7. Record UIUX applicability/reason for every F/R/B; when frontend experience is affected, include journeys, targets, runtime access, pass criteria, review record path, and round budget (default 5)
+8. Draft a complete implementation document for user review
 
 **In the development cycle — after coding:**
 
@@ -257,8 +262,8 @@ Each phase is handed to AI by the user; AI reads the current state and advances:
 4. Write the minimal failing test (red phase) — must confirm failure before proceeding
 5. **If a test fails unexpectedly (not a normal red light for "feature not yet implemented"):** Enter the `diagnose` structured debugging loop, and write assumptions, root cause, and fix strategy back to the "Implementation Record" in the FXX document
 6. Implement the minimal production code needed to pass the test (green phase)
-7. Verify that every acceptance criterion has test coverage
-8. Write the implementation record back to the document
+7. Verify automated coverage for automatable criteria; for frontend work, automatically invoke `uiux-review-loop` for actual independent interaction testing and fix/retest within the approved scope
+8. Require automated acceptance and the independent UIUX pass on the final implementation (or documented not-required reason), then write results and the `documents/uiux/` record link back to the document
 9. If this is not a queue worker, send the `/ddd-tdd` completed notification per `ddd-email-notify`; if this is a queue worker, suppress the per-item completion email
 10. Ask: "Were any architecture gaps exposed during implementation?" If so, suggest `improve-codebase-architecture`
 11. If this is a long-running implementation cycle, suggest `handoff` to preserve DDD state
@@ -266,6 +271,12 @@ Each phase is handed to AI by the user; AI reads the current state and advances:
 Do not start from vague chat instructions. If no implementation document exists, stop and require one.
 
 ---
+
+## Conditional frontend acceptance
+
+`uiux-review-loop` is mandatory within `ddd-tdd` when FXX/RXX/BXX affects frontend layout, content, navigation, interaction, responsive/accessibility behavior, or visible states, including frontend refactor regression review. Pure backend/non-UI work records a not-required reason. It remains directly callable for a focused review, but does not replace normal document approval.
+
+The designer must operate the actual UI and retest fixes. Default maximum: 5 rounds including baseline, configurable in the contract. A stopped needs-work/blocked verdict leaves F/R/B and PXX incomplete and blocks queue closeout, completion commits, dependent items, and completed notifications. Keep the original verdict and evidence in `documents/uiux/`, linked from the spec and queue handoff. In-scope corrections proceed under existing approval; expanded behavior requires an approved amendment. Do not recursively invoke a new ddd-tdd inside the loop.
 
 ## On-demand Pocock Skills (Non-mandatory steps)
 

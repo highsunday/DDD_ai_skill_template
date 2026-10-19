@@ -1,0 +1,4 @@
+interface:
+  display_name: "UIUX Review Loop"
+  short_description: "Improve UI with an independent designer testing loop"
+  default_prompt: "Use $uiux-review-loop to have a UIUX designer use this interface, provide feedback, and retest improvements until the agreed criteria pass."

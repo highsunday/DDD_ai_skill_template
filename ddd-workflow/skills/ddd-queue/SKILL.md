@@ -1,6 +1,6 @@
 ---
 name: ddd-queue
-description: "DDD long-running work queue skill. Creates or executes QXX queue documents under documents/queue/, suitable for 2 to 5 ordered, auto-advanceable feature, bug fix, or refactor tasks. Before creating a queue, a centralized grill-me must be run to clarify requirements, design questions, dependencies, acceptance criteria, and stop conditions for all items; the QXX must be updated before any item may be executed. Each item must be handled by a new Codex or Claude Code session, fully running ddd-start, ddd-doc, and ddd-tdd, then git committed, with all dispatch, questions, answers, decisions, tests, and handoffs recorded in the Agent Communication Ledger between the two agents, orchestrator, and user. On blocker, send email to notify the user and stop; send a completed notification when the entire batch finishes. ddd-tdd called internally by a queue worker must not send a per-item completion notification. Do not use for a single task, for work where requirements still need human stage-by-stage decisions, or for work where the scope of later stages cannot be defined until an earlier stage completes — use ddd-doc/ddd-tdd or ddd-plan for those cases instead."
+description: "Create or execute QXX queues for 2 to 5 ordered, automatically advanceable DDD tasks. Centralized grill-me clarifies all items before execution; each new worker session runs ddd-start, ddd-doc, and ddd-tdd, including required frontend UIUX acceptance, then commits the completed item. Record handoffs and decisions in the Agent Communication Ledger. Stop and notify on blockers; notify once the entire queue completes, suppressing per-item tdd emails. Use ddd-plan when later scope depends on earlier results or human phase decisions; use ddd-doc/ddd-tdd for a single task."
 ---
 
 # DDD Queue
@@ -134,6 +134,7 @@ When creating or updating a QXX, run a centralized `grill-me` first:
    - Whether automated tests can be derived
    - Inter-item dependencies and `unlock_condition`
    - UI / API / data model / permissions / migration / security risks
+   - Frontend UIUX applicability/reason; for affected items, review journeys, targets, runtime/test access, pass criteria, and round budget (default 5). Include these in the item acceptance/design notes for ddd-doc and ddd-tdd.
    - Non-goals and stop conditions
    - Which unanswered questions would cause a worker to block
 3. Consolidate all questions into "Queue Intake Questions" grouped by item, then ask the user all at once.
@@ -273,6 +274,7 @@ Entry `Type` recommended values:
 - `ddd-doc`: worker creates or updates an F/R/B document
 - `tdd-red`: worker records red tests
 - `tdd-green`: worker records green tests and acceptance
+- `uiux-review`: frontend review verdict, rounds, tested build/targets, and review record link; a stopped non-pass also requires a blocked entry
 - `question`: worker needs a user answer
 - `answer`: user or orchestrator responds
 - `decision`: records an adopted product or technical decision
@@ -413,7 +415,7 @@ You must follow these rules:
 8. Execute ddd-start for the assigned item as a new task: determine whether it is FXX / BXX / RXX and load CONTEXT.md; if ddd-start would request a grill-me, cross-check against the Queue Intake Review — if already answered, continue; if not, block. Append a ddd-start entry.
 9. Execute ddd-doc: create or update the corresponding FXX / BXX / RXX document; the document must include requirements, acceptance criteria, test scenarios, stop conditions, and assumptions. Append a ddd-doc entry.
 10. If auto_approve: true and the document produced by ddd-doc is clear, low-risk, and testable, treat that document as the approved document for this item; otherwise block, append a question / blocked entry, and wait for user review.
-11. Execute ddd-tdd: first write failing tests and confirm red, append a tdd-red entry; then implement the minimal green, then run acceptance and update the document implementation record, append a tdd-green entry. Because this ddd-tdd is executed inside a ddd-queue worker, suppress the ddd-tdd per-item completion notification — do not send email.
+11. Execute ddd-tdd: first write failing tests and confirm red, append a tdd-red entry; then implement the minimal green, then run acceptance (including the required uiux-review-loop for frontend work) and update the document implementation record, append a tdd-green entry. For frontend work, the worker delegates actual interaction testing to a separate UIUX designer and records its final verdict/evidence; a stopped non-pass blocks this item before completion or commit. Because this ddd-tdd is executed inside a ddd-queue worker, suppress the ddd-tdd per-item completion notification — do not send email.
 12. Do not skip red tests; if a reasonable failing test cannot be created, block and explain why.
 13. If requirements are ambiguous, high-risk, tests cannot pass stably, or a user decision is needed, mark the item as blocked, fill in blocker_reason, questions, or need_user_decision, append a question / blocked entry, and stop.
 14. On completion, update the queue item: status: completed, implemented_doc, commit, worker_log, handoff_summary, communication_entries, and append a handoff / completed entry.
@@ -429,7 +431,7 @@ The worker sub-session must execute the following steps in order without excepti
 
 1. **ddd-start**: treat the queue item as a new task from the user, determine the type, load `CONTEXT.md`, and check whether prerequisite flows such as grill / zoom-out / diagnose are needed. If the requirements are not suitable for auto-approval, block.
 2. **ddd-doc**: create or update one FXX / BXX / RXX document. The queue item is a dispatch source, not an implementation document; the true requirements authority is still the F/R/B document.
-3. **ddd-tdd**: use the newly created F/R/B document as the sole requirements source; run red, green, acceptance, and documentation updates. Because this is executed inside a queue worker, do not send the ddd-tdd per-item completion notification.
+3. **ddd-tdd**: use the newly created F/R/B document as the sole requirements source; run red, green, acceptance (including the independent UIUX gate for affected frontend work), and documentation updates. Because this is executed inside a queue worker, do not send the ddd-tdd per-item completion notification.
 4. **queue closeout**: update the queue item's status, associated documents, test commands, commit hash, and worker log.
 5. **communication closeout**: append `handoff` / `completed` entries and update the item's `handoff_summary` and `communication_entries`.
 
@@ -451,6 +453,7 @@ Before a worker completes an item it must have:
 10. Created a git commit.
 11. Confirmed `git status --short` is clean.
 12. If the context budget threshold is triggered, performed compaction to ensure the next worker does not need to read the full history.
+13. Recorded UIUX applicability/reason. For required frontend review, obtained an explicit independent reviewer pass on the final implementation and linked the review record in the F/R/B and queue handoff. Include the review record and durable repo-local evidence in the item commit; external evidence keeps a usable reference. A tdd-green entry alone cannot establish UIUX acceptance.
 
 Recommended commit message format:
 
@@ -464,6 +467,7 @@ refactor: complete Q01-03 <refactor name>
 
 The following situations must be blocked:
 
+- Required UIUX review stops with needs-work or blocked (including round exhaustion or missing reviewer/interface tools). Preserve the underlying verdict and review record; do not advance dependent items or send a completion notification.
 - Requirements lack verifiable acceptance behavior.
 - The queue has not completed centralized grill-me, or the item's `clarification_status` is not `clarified`.
 - The item's dependencies are undeclared, a dependent item is blocked, a dependency commit is missing, or `unlock_condition` cannot be verified.

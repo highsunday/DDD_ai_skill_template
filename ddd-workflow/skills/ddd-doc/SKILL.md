@@ -1,6 +1,6 @@
 ---
 name: ddd-doc
-description: DDD enhanced documentation skill. Creates and maintains engineering documents under documents/, intercepting vague requirements before drafting, confirming scope during RXX, and surfacing architectural technical debt after coding. Use when drafting or updating FXX / RXX / BXX documents, or auditing module documents.
+description: DDD enhanced documentation skill. Creates and maintains engineering documents under documents/, intercepting vague requirements before drafting, confirming scope during RXX, defining required frontend UIUX acceptance, and surfacing architectural technical debt after coding. Use when drafting or updating FXX / RXX / BXX documents, or auditing module documents.
 ---
 
 # DDD Doc
@@ -86,6 +86,21 @@ Follow the template structure and ensure:
 - **Clearly marks assumptions, open questions, and non-goals.**
 - **Does not over-specify implementation details**, unless correctness or compatibility requires it.
 
+### Frontend UIUX acceptance contract
+
+For every FXX/RXX/BXX, record `UIUX review: required / not-required` with the impact-based reason. Inspect the actual scope rather than relying only on a handoff flag. Review is required for new or changed user-facing frontend layout, content, navigation, interactions, responsive/accessibility behavior, and visible states; frontend refactors require usability regression review. Pure backend/non-UI work can record not-required with a concrete reason. Mixed work reviews only the affected frontend journeys.
+
+When required, include the following in the document before approval:
+
+- Affected pages/components, target users, design conventions, and permitted change boundaries.
+- Required journeys linked to acceptance/test IDs, starting states, actions, and observable outcomes; relevant loading, empty, validation, error, and completion states.
+- Runtime entry/startup instructions, safe test data/access, and required viewports/input methods. Infer conventional targets where appropriate; identify genuine access/tool blockers early.
+- `uiux-review-loop` as a required acceptance gate, its pass criteria and round limit (default 5 including baseline), and the review record path `documents/uiux/<document-id>-<slug>.md`.
+
+Automatable behavior retains its automated tests. Visual/usability criteria additionally require recorded observations from the independent reviewer; do not invent automated coverage for subjective observations. Reuse approved criteria rather than introducing a competing contract in the review record.
+
+For older approved documents without this section, add the impact assessment and a contract derived from their existing acceptance scope before frontend acceptance. Do not infer not-required from missing fields. Existing approval covers in-scope validation and corrections; new behavior, expanded redesign, or conflicting criteria require a document amendment and the project's approval process.
+
 ### Step 4 — Pre-completion Check
 
 - Confirm whether new requirements need new module documents created or existing ones updated
@@ -104,6 +119,7 @@ Reopen the relevant FXX/RXX/BXX document and fill in the "Implementation Record"
 - Tests executed and results
 - Assumptions and decisions (especially findings from the `diagnose` process)
 - Known limitations or follow-up work
+- UIUX applicability/reason; when required, reviewer verdict, rounds used, tested build/targets, unresolved findings, and a link to the review record. Do not mark the document complete until this gate passes.
 
 ### Step 2 — Audit Module Documents
 

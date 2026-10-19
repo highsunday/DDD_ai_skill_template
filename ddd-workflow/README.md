@@ -9,6 +9,7 @@ Do not add the entire `ddd-workflow/` folder to the AI context. Load only the tr
 3. `/ddd-create-folder` copies the F00 / R00 / B00 / P00 / Q00 / G00 templates from `skills/ddd-create-folder/templates/`
 4. Fill in `CONTEXT.md` at the project root to define your project's domain terminology
 5. Run `/ddd-start` to begin any new work; use `/ddd-queue` if you want the AI to process multiple ordered tasks continuously
+6. For frontend work, approve the UIUX contract as part of F/R/B, then run `/ddd-tdd` as usual. It automatically delegates actual interface testing to a separate designer; install/register `uiux-review-loop` together with the other DDD skills and provide a runnable interface plus interaction tools.
 
 ## Development Loop
 
@@ -21,7 +22,13 @@ User submits a requirement
       ↓
 User reviews and approves the document
       ↓
-/ddd-tdd     Red → Green → Acceptance → Update document
+/ddd-tdd     Red → Green → Automated acceptance
+      ↓
+Frontend UIUX affected?
+├─ Yes → /uiux-review-loop: designer uses UI → feedback → fix → retest → pass
+└─ No  → Record why review is not required
+      ↓
+Required gates pass → Update document → Complete
 ```
 
 Long-running work queues do not necessarily go through PXX:
@@ -45,6 +52,14 @@ Stops after completing the batch limit or when blocked
 
 DDD notification settings are stored in `documents/ddd-email-notify.md`; QXX can also override them via frontmatter. The email fields are `notify_email_from` (the sending address, which must be an address authorized to send in the current environment) and `notify_email_to` (the destination address). `/ddd-tdd` completing on its own sends a completed notification; `/ddd-queue` sends notifications when blocked and when the entire batch finishes; `/ddd-tdd` called by a queue worker does not send a per-item completion email. QXX does not store email passwords, tokens, or SMTP keys; when the email tool is unavailable, the orchestrator falls back to reporting in the current conversation.
 
+## Frontend UIUX acceptance
+
+Frontend layout, content, navigation, interactions, responsive/accessibility behavior, and visible states require independent UIUX acceptance across FXX/RXX/BXX, including regression review for frontend refactors. `ddd-start` carries the impact assessment; `ddd-doc` includes applicability/reason, journeys, targets, and pass criteria in the approved contract. `ddd-tdd` automatically invokes `uiux-review-loop` after automated acceptance, before completion. Pure backend/non-UI work records not-required with a reason.
+
+The main agent implements fixes; the separate designer operates the interface, gives evidence-backed feedback, and retests the latest UI until pass or a stop condition (default maximum 5 rounds, including the initial test). Specify another budget in the request or approved contract. Required journeys and targets must pass on the final build with no unresolved blocker/major issue or required correction. Missing delegation or interaction tools is blocked; source inspection and screenshots alone cannot establish pass. A stopped non-pass leaves F/R/B and PXX incomplete and blocks queue closeout, completion commits, dependent items, and completed notifications. Existing approval covers in-scope fixes. Review records are created on demand at `documents/uiux/<document-id>-<slug>.md` and linked from the spec and queue/plan handoffs. This gate preserves any human acceptance required by the project.
+
+For the full invocation example and verdict table, see the [English guide](../README.md#uiux-review-loop--automatic-frontend-uiux-acceptance) or [繁體中文說明](../README.zh.md#uiux-review-loop--前端-uiux-自動驗收).
+
 ## DDD Skills (Main Workflow)
 
 | Skill | Purpose |
@@ -53,6 +68,7 @@ DDD notification settings are stored in `documents/ddd-email-notify.md`; QXX can
 | `/ddd-start` | Entry point for any new work; detects type and routes |
 | `/ddd-doc` | Creates and maintains FXX / RXX / BXX documents and module documents |
 | `/ddd-tdd` | Document-driven TDD implementation with integrated structured debugging |
+| `/uiux-review-loop` | Required frontend acceptance inside ddd-tdd: separate designer uses the UI → feedback → fix → retest; explicit pass required, default maximum 5 rounds |
 | `/ddd-debug-trace` | Persists hard-bug investigation history across experiments and sessions, then hands the resolved root cause to a BXX |
 | `/ddd-plan` | PXX multi-phase planning for large changes; use when the scope of later phases depends on completing earlier phases first |
 | `/ddd-queue` | Continuously executes multiple ordered tasks; centralized grill-me clarifies all items first, then each item runs in a new session with its own commit; the QXX retains a compact ledger and archive index |
@@ -106,6 +122,7 @@ ddd-workflow/
     ├── handoff/
     ├── caveman/
     ├── prototype/
+    ├── uiux-review-loop/ ← Independent UIUX testing and improvement loop
     └── git-guardrails/
 ```
 
@@ -120,6 +137,7 @@ your-project/
 │   ├── planning/     ← PXX multi-phase planning documents
 │   ├── queue/        ← QXX long-running work queues
 │   │   └── logs/     ← queue long logs / archives
+│   ├── uiux/         ← Review records/evidence, created when a UIUX review runs
 │   └── modules/      ← High-level module documents
 └── CONTEXT.md        ← Copy from ddd-workflow/CONTEXT.md and fill in
 ```

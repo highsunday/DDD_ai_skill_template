@@ -349,7 +349,7 @@ archive_refs: []
 
 1. Each item must be handled by a new Codex or Claude Code session.
 2. Before launching any worker, Queue Intake Review must be complete: `intake_grill_status: completed`, `ready_for_execution: true`, and all items to be executed must have `clarification_status: clarified`.
-3. Each item must be processed with the full `ddd-start → ddd-doc → ddd-tdd` flow.
+3. Each item must be processed with the full `ddd-start → ddd-doc → ddd-tdd` flow. Record UIUX applicability/reason during intake and in F/R/B. Affected frontend work requires the automatic `uiux-review-loop`: separate designer operates the UI → feedback → in-scope fixes → actual retest, default maximum 5 rounds. Pass and the review record link are required before completion/commit or dependency advancement; a stopped non-pass blocks the item and prevents a completed notification.
 4. A git commit must be created after each item completes.
 5. When there are dependencies, confirm all `depends_on` items are `completed` with commits, and that `unlock_condition` is verifiable, before starting the next item.
 6. All cross-agent communication must be appended to the `Agent Communication Ledger`, with entry IDs written back to the corresponding item's `communication_entries` / `ledger_entries`; long content retains only a summary with an `archive_refs` link.
